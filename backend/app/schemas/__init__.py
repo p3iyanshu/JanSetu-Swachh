@@ -79,6 +79,7 @@ class ReportRead(BaseModel):
     citizen_verified: bool = False
     citizen_feedback_comment: Optional[str] = None
     admin_review_comment: Optional[str] = None
+    cancellation_reason: Optional[str] = None
     escalation_level: int
     duplicate_of: Optional[int] = None
     upvote_count: int

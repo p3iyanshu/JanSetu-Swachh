@@ -24,6 +24,9 @@ class FeedbackSubmit(BaseModel):
     satisfied: bool
     comment: Optional[str] = None
 
+class CancelRequest(BaseModel):
+    reason: Optional[str] = None
+
 @router.post("/upload-photo")
 async def upload_photo(file: UploadFile = File(...)):
     filename = f"{uuid.uuid4()}_{file.filename}"
@@ -132,6 +135,29 @@ def get_report(report_id: int, db: Session = Depends(get_db)):
     report = db.query(Report).filter(Report.id == report_id).first()
     if not report:
         raise HTTPException(status_code=404, detail="Report not found")
+    return report
+
+@router.post("/{report_id}/cancel", response_model=ReportRead)
+def cancel_report(report_id: int, payload: CancelRequest, db: Session = Depends(get_db)):
+    report = db.query(Report).filter(Report.id == report_id).first()
+    if not report:
+        raise HTTPException(status_code=404, detail="Report not found")
+    if report.status in (ReportStatus.RESOLVED, ReportStatus.CANCELLED):
+        raise HTTPException(status_code=400, detail="This ticket can no longer be cancelled")
+
+    freed_officer_id = report.assigned_officer_id
+    report.status = ReportStatus.CANCELLED
+    report.cancellation_reason = payload.reason
+    db.commit()
+    db.refresh(report)
+
+    if freed_officer_id:
+        from app.api.admin import _refresh_officer_availability
+
+        officer = db.query(Officer).filter(Officer.id == freed_officer_id).first()
+        if officer:
+            _refresh_officer_availability(db, officer)
+
     return report
 
 @router.post("/{report_id}/feedback", response_model=ReportRead)

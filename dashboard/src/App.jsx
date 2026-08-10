@@ -22,6 +22,7 @@ const statusLabel = {
   pending_approval: 'Pending Admin Approval',
   resolved: 'Resolved',
   reopened: 'Reopened',
+  cancelled: 'Cancelled by Citizen',
 };
 
 const categoryLabel = {
@@ -65,7 +66,7 @@ function LoginScreen({ onLogin }) {
     <main className="login-shell">
       <form className="login-panel" onSubmit={submit}>
         <div className="brand-mark">
-          <ShieldCheck size={40} />
+          <img src="/indian-emblem.png" alt="Emblem of India" />
         </div>
         <h1>JanSetu</h1>
         <p>Admin</p>
@@ -274,6 +275,17 @@ function TicketCard({ ticket, currentOfficer, onAssign, onStart, onResolve, onAp
         <span className={`badge badge-${ticket.status}`}>{statusLabel[ticket.status] || ticket.status}</span>
       </div>
       <p>{ticket.description || 'No description provided.'}</p>
+      {ticket.photo_url && (
+        <a
+          className="proof-photo-link"
+          href={resolveMediaUrl(ticket.photo_url)}
+          target="_blank"
+          rel="noreferrer"
+        >
+          <img src={resolveMediaUrl(ticket.photo_url)} alt="Photo submitted by citizen" />
+          View Photo Reported by Citizen
+        </a>
+      )}
       <div className="ticket-meta">
         <span><MapPin size={14} /> {ticket.latitude.toFixed(4)}, {ticket.longitude.toFixed(4)}</span>
         <span><Clock size={14} /> Created {formatDate(ticket.created_at)}</span>
@@ -287,7 +299,7 @@ function TicketCard({ ticket, currentOfficer, onAssign, onStart, onResolve, onAp
         <span>ETA: {formatDate(ticket.estimated_completion_at)}</span>
       </div>
 
-      {ticket.status !== 'resolved' && !ticket.assigned_officer_id && (
+      {ticket.status !== 'resolved' && ticket.status !== 'cancelled' && !ticket.assigned_officer_id && (
         <AssignWorkerControl ticket={ticket} onAssign={onAssign} />
       )}
 
@@ -370,6 +382,16 @@ function TicketCard({ ticket, currentOfficer, onAssign, onStart, onResolve, onAp
           <span>
             Citizen was not satisfied and reopened this ticket.
             {ticket.citizen_feedback_comment ? ` "${ticket.citizen_feedback_comment}"` : ''}
+          </span>
+        </div>
+      )}
+
+      {ticket.status === 'cancelled' && (
+        <div className="resolved-box cancelled">
+          <XCircle size={18} />
+          <span>
+            Citizen cancelled this ticket - no action needed.
+            {ticket.cancellation_reason ? ` "${ticket.cancellation_reason}"` : ''}
           </span>
         </div>
       )}
@@ -494,6 +516,9 @@ export default function App() {
   return (
     <main className="admin-shell">
       <header className="admin-header">
+        <div className="brand-mark">
+          <img src="/indian-emblem.png" alt="Emblem of India" />
+        </div>
         <div>
           <h1>JanSetu Admin</h1>
           <p>
@@ -580,6 +605,7 @@ export default function App() {
           <option value="pending_approval">Pending Admin Approval</option>
           <option value="resolved">Resolved</option>
           <option value="reopened">Reopened</option>
+          <option value="cancelled">Cancelled by Citizen</option>
         </select>
         <select value={departmentFilter} onChange={(e) => setDepartmentFilter(e.target.value)}>
           <option value="all">All departments</option>

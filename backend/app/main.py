@@ -32,6 +32,7 @@ def ensure_runtime_schema():
             "citizen_verified": "BOOLEAN DEFAULT FALSE",
             "citizen_feedback_comment": "VARCHAR(1000)",
             "admin_review_comment": "VARCHAR(1000)",
+            "cancellation_reason": "VARCHAR(1000)",
         },
         "resolution_records": {
             "latitude": "FLOAT",
@@ -72,6 +73,9 @@ def ensure_runtime_schema():
                 autocommit_connection = autocommit_connection.execution_options(isolation_level="AUTOCOMMIT")
                 autocommit_connection.execute(
                     text("ALTER TYPE reportstatus ADD VALUE IF NOT EXISTS 'PENDING_APPROVAL'")
+                )
+                autocommit_connection.execute(
+                    text("ALTER TYPE reportstatus ADD VALUE IF NOT EXISTS 'CANCELLED'")
                 )
         except Exception:
             pass

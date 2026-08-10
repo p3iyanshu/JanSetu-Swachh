@@ -24,6 +24,7 @@ class ReportStatus(str, enum.Enum):
     RESOLVED = "resolved"
     REOPENED = "reopened"
     DUPLICATE = "duplicate"
+    CANCELLED = "cancelled"
 
 class CategoryType(str, enum.Enum):
     POTHOLE = "pothole"
@@ -103,6 +104,7 @@ class Report(Base):
     citizen_verified = Column(Boolean, default=False)
     citizen_feedback_comment = Column(String(1000), nullable=True)
     admin_review_comment = Column(String(1000), nullable=True)
+    cancellation_reason = Column(String(1000), nullable=True)
 
     reporter = relationship("User", back_populates="reports", foreign_keys=[user_id])
     assigned_department = relationship("Department", back_populates="reports")

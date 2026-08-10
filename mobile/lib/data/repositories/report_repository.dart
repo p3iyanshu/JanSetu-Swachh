@@ -62,4 +62,15 @@ class ReportRepository {
     );
     return ReportModel.fromJson(Map<String, dynamic>.from(response.data as Map));
   }
+
+  Future<ReportModel> cancelReport({
+    required int reportId,
+    String? reason,
+  }) async {
+    final response = await _apiClient.dio.post(
+      '/reports/$reportId/cancel',
+      data: {'reason': reason},
+    );
+    return ReportModel.fromJson(Map<String, dynamic>.from(response.data as Map));
+  }
 }

@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
@@ -403,6 +404,29 @@ class ReportNotifier extends StateNotifier<ReportState> {
       return true;
     } catch (_) {
       return false;
+    }
+  }
+
+  /// Cancels a ticket the citizen no longer wants to pursue (e.g. filed by
+  /// mistake). Returns null on success, or a user-facing error message.
+  Future<String?> cancelTicket(String ticketId) async {
+    final ticket = state.submittedTickets.firstWhere(
+      (t) => t.ticketId == ticketId,
+      orElse: () => ReportModel(photoUrl: '', latitude: 0, longitude: 0, category: 'other'),
+    );
+    if (ticket.id == null) return 'Could not find this ticket.';
+
+    try {
+      final updated = await repository.cancelReport(reportId: ticket.id!);
+      final updatedList = state.submittedTickets
+          .map((t) => t.ticketId == ticketId ? updated : t)
+          .toList();
+      state = state.copyWith(submittedTickets: updatedList);
+      return null;
+    } on DioException catch (e) {
+      return e.response?.data?['detail']?.toString() ?? 'Could not cancel the ticket. Check your connection.';
+    } catch (_) {
+      return 'Could not cancel the ticket. Check your connection.';
     }
   }
 

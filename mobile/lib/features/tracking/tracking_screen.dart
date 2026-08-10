@@ -35,6 +35,8 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
         return Colors.indigo.shade600;
       case 'reopened':
         return Colors.red.shade700;
+      case 'cancelled':
+        return Colors.grey.shade600;
       default:
         return Colors.blue.shade700;
     }
@@ -52,10 +54,20 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
         return 'RESOLVED';
       case 'reopened':
         return 'REOPENED';
+      case 'cancelled':
+        return 'CANCELLED';
       default:
         return 'SUBMITTED';
     }
   }
+
+  static const Set<String> _cancellableStatuses = {
+    'submitted',
+    'assigned',
+    'in_progress',
+    'pending_approval',
+    'reopened',
+  };
 
   void _showTicketDetails(BuildContext context, ReportModel ticket) {
     final resolvedPhotoUrl = AppConstants.resolveMediaUrl(ticket.photoUrl);
@@ -335,6 +347,33 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
                             ),
                           ),
                         ],
+                        if (ticket.status.toLowerCase() == 'cancelled') ...[
+                          const SizedBox(height: 12),
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade100,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(Icons.cancel_outlined, size: 16, color: Colors.grey.shade700),
+                                const SizedBox(width: 6),
+                                Expanded(
+                                  child: Text(
+                                    'You cancelled this ticket.',
+                                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.grey.shade700),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                        if (_cancellableStatuses.contains(ticket.status.toLowerCase())) ...[
+                          const SizedBox(height: 12),
+                          _CancelTicketButton(ticketId: ticket.ticketId),
+                        ],
                       ],
                     ),
                     ),
@@ -422,6 +461,72 @@ class _FeedbackSectionState extends ConsumerState<_FeedbackSection> {
           ],
         ),
       ],
+    );
+  }
+}
+
+class _CancelTicketButton extends ConsumerStatefulWidget {
+  final String ticketId;
+
+  const _CancelTicketButton({required this.ticketId});
+
+  @override
+  ConsumerState<_CancelTicketButton> createState() => _CancelTicketButtonState();
+}
+
+class _CancelTicketButtonState extends ConsumerState<_CancelTicketButton> {
+  bool _isCancelling = false;
+
+  Future<void> _confirmAndCancel() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Cancel this ticket?'),
+        content: const Text(
+          'This will close the ticket permanently. Use this if you reported it by mistake or it no longer needs attention.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Keep Ticket'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Cancel Ticket', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    setState(() => _isCancelling = true);
+    final error = await ref.read(reportNotifierProvider.notifier).cancelTicket(widget.ticketId);
+    if (!mounted) return;
+    setState(() => _isCancelling = false);
+    if (error != null) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error)));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton.icon(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: Colors.red.shade700,
+          side: BorderSide(color: Colors.red.shade200),
+        ),
+        onPressed: _isCancelling ? null : _confirmAndCancel,
+        icon: _isCancelling
+            ? const SizedBox(
+                width: 14,
+                height: 14,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : const Icon(Icons.close_rounded, size: 16),
+        label: Text(_isCancelling ? 'Cancelling...' : 'Cancel Ticket'),
+      ),
     );
   }
 }
