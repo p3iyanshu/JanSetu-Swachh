@@ -1,9 +1,7 @@
-# JanSetu (জনসেতু / जनसेतु) — Crowdsourced Civic Issue Reporting & Resolution System
+# JanSetu — Crowdsourced Civic Issue Reporting & Resolution System
 
-**Smart India Hackathon 2026 — Problem Statement SIH25031**  
 **Team JanSetu | Presidency University, Bengaluru**  
-*Team Lead:* Priyanshu Choudhary | *Members:* Rajat Choudhury, Nihal Jeremiah, Shreya Saha, Khushi Singh
-
+*Team Lead:* Priyanshu Choudhary 
 ---
 
 ## Architecture Overview
