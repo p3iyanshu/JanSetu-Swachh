@@ -12,6 +12,24 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev", "--", "--host", "127.0.0.1", "--port", "5173"],
       "port": 5173
+    },
+    {
+      "name": "dashboard_demo_pwd",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev:pwd", "--", "--host", "127.0.0.1"],
+      "port": 5175
+    },
+    {
+      "name": "dashboard_demo_water",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev:water", "--", "--host", "127.0.0.1"],
+      "port": 5176
+    },
+    {
+      "name": "dashboard_demo_garbage",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev:garbage", "--", "--host", "127.0.0.1"],
+      "port": 5174
     }
   ]
 }

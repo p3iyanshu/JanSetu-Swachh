@@ -1,0 +1,33 @@
+{
+  "name": "jansetu-dashboard-demo",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --mode garbage --port 5174",
+    "dev:pwd": "vite --mode pwd --port 5175",
+    "dev:water": "vite --mode water --port 5176",
+    "dev:garbage": "vite --mode garbage --port 5174",
+    "build:pwd": "vite build --mode pwd",
+    "build:water": "vite build --mode water",
+    "build:garbage": "vite build --mode garbage",
+    "lint": "eslint .",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "axios": "^1.6.8",
+    "leaflet": "^1.9.4",
+    "lucide-react": "^0.359.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-leaflet": "^4.2.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.66",
+    "@types/react-dom": "^18.2.22",
+    "@vitejs/plugin-react": "^4.2.1",
+    "autoprefixer": "^10.4.19",
+    "postcss": "^8.4.38",
+    "vite": "^5.1.6"
+  }
+}
