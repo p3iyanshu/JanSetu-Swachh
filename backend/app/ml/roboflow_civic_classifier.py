@@ -23,6 +23,17 @@ class RoboflowWorkflow:
 
 
 class RoboflowCivicClassifier:
+    # The citizen-facing category picker only offers these four (see
+    # mobile/lib/core/constants/app_constants.dart) - streetlight and road
+    # damage were deliberately dropped from it, but their Roboflow workflows
+    # were still running here and could win the overall confidence race,
+    # leaving the app unable to auto-select anything and showing "AI could
+    # not confidently detect" even when the AI *did* detect something (just
+    # not a choosable category). Restricting the competition to these four
+    # keeps this endpoint's only consumer (the citizen quick-report
+    # AI-suggest flow) from ever "winning" on an undisplayable category.
+    _CITIZEN_FACING_CATEGORIES = {"pothole", "garbage_overflow", "water_leakage", "sewage_overflow"}
+
     _workflows = [
         RoboflowWorkflow("pothole", "Pothole", "ROBOFLOW_POTHOLE_WORKFLOW_ID"),
         RoboflowWorkflow("damaged_public_property", "Road Damage", "ROBOFLOW_ROAD_DAMAGE_WORKFLOW_ID"),
@@ -82,6 +93,7 @@ class RoboflowCivicClassifier:
             workflow
             for workflow in self._workflows
             if os.getenv(workflow.env_key, "").strip()
+            and workflow.category in self._CITIZEN_FACING_CATEGORIES
         ]
         if not configured_workflows:
             return self._not_configured()
