@@ -53,6 +53,7 @@ dist-ssr
 .pub/
 build/
 ephemeral/
+.kotlin/
 ios/Flutter/App.framework
 ios/Flutter/Flutter.framework
 ios/Flutter/Flutter.podspec
@@ -82,6 +83,7 @@ Thumbs.db
 # Large local-only files not part of the codebase
 /downloads/
 backend/uploads/*
+backend/temp_uploads/*
 *.db
 *.pt
 

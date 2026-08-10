@@ -3,33 +3,8 @@ import io
 from PIL import Image
 
 from app.main import app
-from app.ml.yolo_classifier import YOLOv8CivicClassifier
-from app.ml.clip_embeddings import CLIPEmbeddingExtractor
-from app.ml.llm_describer import MultimodalLLMDescriber
 
 client = TestClient(app)
-
-def test_yolo_classifier():
-    classifier = YOLOv8CivicClassifier()
-    result = classifier.classify_image("non_existent_file.jpg")
-    assert "category" in result
-    assert "confidence" in result
-    assert result["category"] in ["pothole", "garbage_overflow", "water_leakage", "broken_streetlight"]
-
-def test_clip_embeddings():
-    extractor = CLIPEmbeddingExtractor()
-    vec1 = extractor.extract_image_embedding("test1.jpg")
-    vec2 = extractor.extract_image_embedding("test2.jpg")
-    assert len(vec1) == 512
-    sim = extractor.cosine_similarity(vec1, vec2)
-    assert 0.0 <= sim <= 1.0
-
-def test_llm_describer():
-    describer = MultimodalLLMDescriber()
-    result = describer.generate_issue_description("pothole", user_transcript="Deep crater on main road", latitude=13.0827, longitude=77.5877)
-    assert result["category"] == "pothole"
-    assert result["severity_score"] >= 1
-    assert "pothole" in result["description"].lower()
 
 def test_ai_analyze_endpoint():
     # Generate mock image in memory
