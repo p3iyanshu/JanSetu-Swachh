@@ -90,3 +90,6 @@ backend/temp_uploads/*
 # Internal dev-session notes - not for the public repo
 /CLAUDE_CODE_HANDOVER.md
 /jansetu_state_dump.md
+
+# Electron app icons live in admin_desktop/build (not a build output)
+!admin_desktop/build/
