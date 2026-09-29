@@ -164,7 +164,7 @@ class _WorkerTicketDetailsScreenState extends ConsumerState<WorkerTicketDetailsS
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    ticket.category.toUpperCase().replaceAll('_', ' '),
+                    AppConstants.categoryLabel(ticket.category),
                     style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppTheme.accentOrange),
                   ),
                   const SizedBox(height: 12),

@@ -14,6 +14,17 @@ class ApiClient {
       ),
     );
 
+    // Re-read the base URL on every request so a server address changed in
+    // the app's settings applies immediately to every client instance.
+    dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) {
+          options.baseUrl = AppConstants.apiBaseUrl;
+          handler.next(options);
+        },
+      ),
+    );
+
     dio.interceptors.add(
       LogInterceptor(
         requestBody: true,

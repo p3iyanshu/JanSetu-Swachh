@@ -24,6 +24,22 @@ class FaqScreen extends StatelessWidget {
         'Can I type instead of using voice?',
         'Yes. Voice transcription is optional, and the description field is always editable.'
       ),
+      (
+        'What waste and sanitation problems can I report?',
+        'Garbage piles, dumping spots, missed door-to-door pickups, mixed (unsegregated) waste, waste burning and dirty or locked public toilets. They go straight to the sanitation department.'
+      ),
+      (
+        'How should I segregate waste at home?',
+        'Keep four separate streams: wet (green bin), dry (blue bin), sanitary (wrapped and marked with a red dot) and special care like batteries, bulbs and medicines. Open "Which Bin?" to search any item - it works offline.'
+      ),
+      (
+        'How do I know the problem was really fixed?',
+        'The worker must upload a geo-tagged "after" photo from the spot. An officer reviews it, and then you confirm or reopen the ticket from My Tickets.'
+      ),
+      (
+        'What are Swachh points?',
+        'You earn points for every genuine report, extra points for waste and sanitation reports, and more when the issue is fixed and you verify it. Levels go from Swachh Starter to Swachh Ambassador.'
+      ),
     ];
 
     return Scaffold(

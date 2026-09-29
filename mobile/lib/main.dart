@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'core/constants/app_constants.dart';
+import 'core/services/server_config.dart';
 import 'core/theme/app_theme.dart';
 import 'data/models/report_model.dart';
 import 'features/auth/login_screen.dart';
@@ -11,7 +13,9 @@ import 'features/home/contact_authorities_screen.dart';
 import 'features/home/faq_screen.dart';
 import 'features/home/home_screen.dart';
 import 'features/report/report_screen.dart';
+import 'features/swachh/waste_guide_screen.dart';
 import 'features/tracking/tracking_screen.dart';
+import 'features/worker/collection_round_screen.dart';
 import 'features/worker/worker_auth_screen.dart';
 import 'features/worker/worker_home_screen.dart';
 import 'features/worker/worker_ticket_details_screen.dart';
@@ -25,6 +29,7 @@ Future<void> _firebaseBackgroundMessageHandler(RemoteMessage message) async {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await ServerConfig.load();
   try {
     await Firebase.initializeApp();
     FirebaseMessaging.onBackgroundMessage(_firebaseBackgroundMessageHandler);
@@ -56,7 +61,14 @@ final GoRouter _router = GoRouter(
     ),
     GoRoute(
       path: '/report',
-      builder: (context, state) => const ReportScreen(),
+      builder: (context, state) => ReportScreen(
+        key: ValueKey(state.uri.toString()),
+        initialCategory: state.uri.queryParameters['category'],
+      ),
+    ),
+    GoRoute(
+      path: '/guide',
+      builder: (context, state) => const WasteGuideScreen(),
     ),
     GoRoute(
       path: '/tracking',
@@ -71,6 +83,10 @@ final GoRouter _router = GoRouter(
       builder: (context, state) => const WorkerHomeScreen(),
     ),
     GoRoute(
+      path: '/worker/collection',
+      builder: (context, state) => const CollectionRoundScreen(),
+    ),
+    GoRoute(
       path: '/worker/ticket/:id',
       builder: (context, state) => WorkerTicketDetailsScreen(
         reportId: int.parse(state.pathParameters['id']!),
@@ -81,12 +97,12 @@ final GoRouter _router = GoRouter(
 );
 
 class JanSetuApp extends StatelessWidget {
-  const JanSetuApp({Key? key}) : super(key: key);
+  const JanSetuApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp.router(
-      title: 'JanSetu',
+      title: AppConstants.appName,
       theme: AppTheme.lightTheme,
       routerConfig: _router,
       debugShowCheckedModeBanner: false,

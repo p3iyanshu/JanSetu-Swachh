@@ -7,14 +7,15 @@ class ReportRepository {
 
   ReportRepository(this._apiClient);
 
-  Future<ReportModel> submitReport(ReportModel report) async {
-    try {
-      final response = await _apiClient.dio.post('/reports/', data: report.toJson());
-      return ReportModel.fromJson(response.data);
-    } catch (e) {
-      // Offline fallback stub for step 1 scaffolding
-      return report;
-    }
+  Future<ReportModel> submitReport(ReportModel report, {int? userId}) async {
+    final response = await _apiClient.dio.post(
+      '/reports/',
+      data: {
+        ...report.toJson(),
+        if (userId != null) 'user_id': userId,
+      },
+    );
+    return ReportModel.fromJson(Map<String, dynamic>.from(response.data as Map));
   }
 
   Future<String> uploadPhoto(String localImagePath) async {
@@ -42,12 +43,18 @@ class ReportRepository {
     return Map<String, dynamic>.from(response.data as Map);
   }
 
-  Future<List<ReportModel>> getReports() async {
+  /// Tickets filed by [userId], or every ticket when the citizen isn't
+  /// signed in (e.g. the offline demo-OTP fallback). Null when the request
+  /// fails, so callers can keep what they already show.
+  Future<List<ReportModel>?> getReports({int? userId}) async {
     try {
-      final response = await _apiClient.dio.get('/reports/');
+      final response = await _apiClient.dio.get(
+        '/reports/',
+        queryParameters: {if (userId != null) 'user_id': userId},
+      );
       return (response.data as List).map((e) => ReportModel.fromJson(e)).toList();
     } catch (e) {
-      return [];
+      return null;
     }
   }
 

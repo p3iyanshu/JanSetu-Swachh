@@ -6,12 +6,19 @@ import 'package:go_router/go_router.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../../core/constants/app_constants.dart';
+import '../../core/theme/app_theme.dart';
 import '../../widgets/app_navigation_drawer.dart';
+import '../../widgets/category_icon.dart';
 import '../../widgets/location_picker_dialog.dart';
+import '../auth/citizen_session_provider.dart';
 import 'report_provider.dart';
 
 class ReportScreen extends ConsumerStatefulWidget {
-  const ReportScreen({super.key});
+  /// Issue type to preselect, e.g. when opened from a Swachh quick-report
+  /// tile on the home screen.
+  final String? initialCategory;
+
+  const ReportScreen({super.key, this.initialCategory});
 
   @override
   ConsumerState<ReportScreen> createState() => _ReportScreenState();
@@ -24,7 +31,9 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
   void initState() {
     super.initState();
     Future.microtask(() {
-      ref.read(reportNotifierProvider.notifier).resetForm();
+      ref
+          .read(reportNotifierProvider.notifier)
+          .resetForm(initialCategory: widget.initialCategory);
     });
   }
 
@@ -115,7 +124,7 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
             onPressed: () => Scaffold.of(context).openDrawer(),
           ),
         ),
-        title: const Text('JanSetu — Report Issue',
+        title: const Text('Report an Issue',
             style: TextStyle(fontSize: 19, fontWeight: FontWeight.bold)),
         actions: [
           IconButton(
@@ -159,7 +168,7 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
                                   fontWeight: FontWeight.bold,
                                   color: Colors.blue)),
                           SizedBox(height: 4),
-                          Text('Camera (with flash & flip) or Browse Files',
+                          Text('Required: this is the "before" proof for the fix',
                               style:
                                   TextStyle(fontSize: 13, color: Colors.grey)),
                         ],
@@ -227,56 +236,26 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
                 ),
               ),
             ],
-            const SizedBox(height: 10),
-            GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                childAspectRatio: 2.6,
-                crossAxisSpacing: 10,
-                mainAxisSpacing: 10,
-              ),
-              itemCount: AppConstants.categories.length,
-              itemBuilder: (context, index) {
-                final cat = AppConstants.categories[index];
-                final isSelected = reportState.selectedCategory == cat['id'];
-                return OutlinedButton(
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    backgroundColor: isSelected
-                        ? Colors.blue.withValues(alpha: 0.15)
-                        : Colors.white,
-                    side: BorderSide(
-                      color: isSelected ? Colors.blue : Colors.grey.shade300,
-                      width: isSelected ? 2 : 1,
-                    ),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                  ),
-                  onPressed: () => reportNotifier.setCategory(cat['id']),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.build_circle_outlined, size: 20),
-                      const SizedBox(width: 6),
-                      Flexible(
-                        child: Text(
-                          cat['label'],
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight:
-                                isSelected ? FontWeight.bold : FontWeight.w500,
-                            color: isSelected ? Colors.blue : Colors.black87,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              },
+            const SizedBox(height: 12),
+            _CategorySection(
+              title: 'Waste & Sanitation (Swachh)',
+              color: AppTheme.swachhGreen,
+              group: 'swachh',
+              selectedCategory: reportState.selectedCategory,
+              onSelected: reportNotifier.setCategory,
             ),
+            const SizedBox(height: 14),
+            _CategorySection(
+              title: 'Other Civic Issues',
+              color: AppTheme.accentBlue,
+              group: 'civic',
+              selectedCategory: reportState.selectedCategory,
+              onSelected: reportNotifier.setCategory,
+            ),
+            if (reportState.selectedCategory == 'unsegregated_waste') ...[
+              const SizedBox(height: 10),
+              _GuideHint(onTap: () => context.push('/guide')),
+            ],
             const SizedBox(height: 20),
 
             // 3. Location Box
@@ -502,6 +481,34 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
             ),
             const SizedBox(height: 24),
 
+            if (reportState.submitError != null) ...[
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade50,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.red.shade200),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.error_outline, color: Colors.red.shade700, size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        reportState.submitError!,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.red.shade800,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
+
             // 5. Submit Button
             ElevatedButton(
               style: ElevatedButton.styleFrom(
@@ -514,11 +521,13 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
               onPressed: reportState.isSubmitting
                   ? null
                   : () async {
-                      final success = await reportNotifier.submitReport();
+                      final success = await reportNotifier.submitReport(
+                        userId: ref.read(citizenSessionProvider)?.userId,
+                      );
                       final String ticketId = ref
                               .read(reportNotifierProvider)
                               .lastCreatedTicketId ??
-                          'JAN-2026-00103';
+                          '';
                       if (success && context.mounted) {
                         showDialog(
                           context: context,
@@ -536,6 +545,141 @@ class _ReportScreenState extends ConsumerState<ReportScreen> {
                       style:
                           TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CategorySection extends StatelessWidget {
+  final String title;
+  final Color color;
+  final String group;
+  final String selectedCategory;
+  final ValueChanged<String> onSelected;
+
+  const _CategorySection({
+    required this.title,
+    required this.color,
+    required this.group,
+    required this.selectedCategory,
+    required this.onSelected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final items = AppConstants.categories.where((item) => item['group'] == group).toList();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Container(
+              width: 4,
+              height: 16,
+              decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(2)),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              title,
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: color),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 3,
+            childAspectRatio: 1.05,
+            crossAxisSpacing: 8,
+            mainAxisSpacing: 8,
+          ),
+          itemCount: items.length,
+          itemBuilder: (context, index) {
+            final category = items[index];
+            final id = category['id'] as String;
+            final isSelected = selectedCategory == id;
+            return Semantics(
+              button: true,
+              selected: isSelected,
+              label: '${category['label']}. ${category['hint']}',
+              child: InkWell(
+                borderRadius: BorderRadius.circular(12),
+                onTap: () => onSelected(id),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 150),
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: isSelected ? color.withValues(alpha: 0.12) : Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: isSelected ? color : Colors.grey.shade300,
+                      width: isSelected ? 2 : 1,
+                    ),
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      CategoryIcon(
+                        category: id,
+                        size: 28,
+                        color: isSelected ? color : Colors.grey.shade700,
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        category['label'] as String,
+                        textAlign: TextAlign.center,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 13,
+                          height: 1.15,
+                          fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                          color: isSelected ? color : Colors.black87,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+      ],
+    );
+  }
+}
+
+class _GuideHint extends StatelessWidget {
+  final VoidCallback onTap;
+
+  const _GuideHint({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: AppTheme.swachhGreenSoft,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: const Row(
+          children: [
+            Icon(Icons.recycling_rounded, color: AppTheme.swachhGreen),
+            SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Share the "Which Bin?" guide with the household: wet, dry, sanitary and special care waste go separately.',
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.swachhGreen),
+              ),
+            ),
+            Icon(Icons.chevron_right_rounded, color: AppTheme.swachhGreen),
           ],
         ),
       ),

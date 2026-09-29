@@ -62,7 +62,7 @@ class _WorkerHomeScreenState extends ConsumerState<WorkerHomeScreen> {
           ),
         ],
       ),
-      drawer: _buildDrawer(officer.name, officer.empId ?? ''),
+      drawer: _buildDrawer(officer.name, officer.empId ?? '', _isSanitationWorker(authState, officer.departmentId)),
       body: RefreshIndicator(
         onRefresh: _refresh,
         child: _buildBody(isLoading, tickets, ticketsState.error),
@@ -121,7 +121,17 @@ class _WorkerHomeScreenState extends ConsumerState<WorkerHomeScreen> {
     );
   }
 
-  Widget _buildDrawer(String name, String empId) {
+  /// Door-to-door collection rounds only make sense for the waste /
+  /// sanitation department. If departments haven't loaded yet, show it
+  /// rather than hide a feature the worker may need.
+  bool _isSanitationWorker(WorkerAuthState authState, int departmentId) {
+    final matches = authState.departments.where((department) => department.id == departmentId);
+    if (matches.isEmpty) return true;
+    final name = matches.first.name.toLowerCase();
+    return name.contains('waste') || name.contains('sanitation') || name.contains('garbage');
+  }
+
+  Widget _buildDrawer(String name, String empId, bool showCollectionRound) {
     return Drawer(
       child: SafeArea(
         child: Column(
@@ -136,7 +146,7 @@ class _WorkerHomeScreenState extends ConsumerState<WorkerHomeScreen> {
                   const Icon(Icons.engineering_outlined, color: Colors.white, size: 40),
                   const SizedBox(height: 12),
                   const Text(
-                    'JanSetu Worker',
+                    'JanSetu-Swachh Worker',
                     style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 4),
@@ -164,6 +174,16 @@ class _WorkerHomeScreenState extends ConsumerState<WorkerHomeScreen> {
                 _refresh();
               },
             ),
+            if (showCollectionRound)
+              ListTile(
+                leading: const Icon(Icons.recycling_rounded, color: AppTheme.swachhGreen),
+                title: const Text('Door-to-door Collection'),
+                subtitle: const Text('Log household segregation'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  context.go('/worker/collection');
+                },
+              ),
             const Spacer(),
             ListTile(
               leading: const Icon(Icons.logout, color: Colors.red),

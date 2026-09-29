@@ -1,25 +1,30 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:dio/dio.dart';
 
+import '../../core/constants/app_constants.dart';
 import '../../core/network/api_client.dart';
 import '../../core/services/notification_service.dart';
+import '../../widgets/server_settings_dialog.dart';
+import 'citizen_session_provider.dart';
 
-class LoginScreen extends StatefulWidget {
+class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen>
+class _LoginScreenState extends ConsumerState<LoginScreen>
     with SingleTickerProviderStateMixin {
   final _phoneController = TextEditingController();
   final _otpController = TextEditingController();
   final _apiClient = ApiClient();
   late final AnimationController _flagController;
+  final _serverStatusKey = GlobalKey<ServerStatusBannerState>();
   bool _otpSent = false;
   bool _isLoading = false;
   String? _demoOtp;
@@ -76,13 +81,14 @@ class _LoginScreenState extends State<LoginScreen>
           ),
         );
       }
+    } on DioException catch (e) {
+      if (e.response == null) {
+        await _onServerUnreachable();
+      } else {
+        _showMessage(e.response?.data?['detail']?.toString() ?? 'Could not send OTP.');
+      }
     } catch (_) {
-      _otpController.text = '123456';
-      setState(() {
-        _otpSent = true;
-        _demoOtp = '123456';
-      });
-      _showMessage('Backend unavailable. Using demo fallback OTP 123456.');
+      _showMessage('Could not send OTP. Try again.');
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -100,30 +106,43 @@ class _LoginScreenState extends State<LoginScreen>
 
     setState(() => _isLoading = true);
     try {
-      await _apiClient.dio.post(
+      final response = await _apiClient.dio.post(
         '/auth/verify-otp',
         data: {'phone': phone, 'otp': otp},
       );
+      final user = Map<String, dynamic>.from(response.data as Map);
+      if (user['id'] is int) {
+        await ref.read(citizenSessionProvider.notifier).login(
+              userId: user['id'] as int,
+              phone: phone,
+            );
+      }
       // Fire-and-forget: don't block login on push-notification setup.
       NotificationService(_apiClient).registerForPhone(phone);
       if (mounted) {
-        context.go('/report');
+        context.go('/home');
       }
     } on DioException catch (e) {
-      _showMessage(e.response?.data?['detail']?.toString() ?? 'Invalid OTP.');
-    } catch (_) {
-      if (otp == '123456') {
-        if (mounted) {
-          context.go('/report');
-        }
+      if (e.response == null) {
+        await _onServerUnreachable();
       } else {
-        _showMessage('Could not verify OTP. Use 123456 for demo fallback.');
+        _showMessage(e.response?.data?['detail']?.toString() ?? 'Invalid OTP.');
       }
+    } catch (_) {
+      _showMessage('Could not verify OTP. Try again.');
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
       }
     }
+  }
+
+  /// The app can't work without the backend, so instead of pretending to log
+  /// in offline, tell the user and help them reconnect.
+  Future<void> _onServerUnreachable() async {
+    if (!mounted) return;
+    await showServerUnreachableDialog(context);
+    _serverStatusKey.currentState?.recheck(search: false);
   }
 
   void _showMessage(String message) {
@@ -158,11 +177,23 @@ class _LoginScreenState extends State<LoginScreen>
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   const Text(
-                    'JanSetu',
+                    AppConstants.appName,
                     textAlign: TextAlign.center,
                     style: TextStyle(fontSize: 36, fontWeight: FontWeight.bold),
                   ),
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 6),
+                  const Text(
+                    "Report civic & sanitation issues. Segregate. Track till it's clean.",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF1C1B18),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  ServerStatusBanner(key: _serverStatusKey),
+                  const SizedBox(height: 16),
                   TextField(
                     controller: _phoneController,
                     keyboardType: TextInputType.phone,
@@ -235,6 +266,11 @@ class _LoginScreenState extends State<LoginScreen>
                 ],
               ),
             ),
+          ),
+          const Positioned(
+            top: 0,
+            right: 0,
+            child: SafeArea(child: ServerSettingsButton()),
           ),
         ],
       ),

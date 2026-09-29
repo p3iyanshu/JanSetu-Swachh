@@ -15,6 +15,7 @@ class ContactAuthoritiesScreen extends StatelessWidget {
       ('Child Helpline', '1098', Icons.child_care_outlined),
       ('Women Helpline', '1091', Icons.woman_outlined),
       ('Road Accident Emergency', '1073', Icons.car_crash_outlined),
+      ('BBMP / GBA Civic Helpline (Bengaluru)', '1533', Icons.delete_outline_rounded),
     ];
 
     return Scaffold(

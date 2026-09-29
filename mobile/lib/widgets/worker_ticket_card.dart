@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
+import '../core/constants/app_constants.dart';
 import '../core/theme/app_theme.dart';
 import '../data/models/report_model.dart';
+import 'category_icon.dart';
 
 Color statusColorFor(String status) {
   switch (status.toLowerCase()) {
@@ -91,11 +93,11 @@ class WorkerTicketCard extends StatelessWidget {
               const SizedBox(height: 12),
               Row(
                 children: [
-                  Icon(Icons.build_circle_outlined, color: Colors.grey.shade700, size: 20),
+                  CategoryIcon(category: ticket.category, color: Colors.grey.shade700, size: 20),
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(
-                      ticket.category.toUpperCase().replaceAll('_', ' '),
+                      AppConstants.categoryLabel(ticket.category),
                       style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
                     ),
                   ),

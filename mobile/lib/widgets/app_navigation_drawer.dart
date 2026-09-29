@@ -1,11 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-class AppNavigationDrawer extends StatelessWidget {
+import '../core/constants/app_constants.dart';
+import '../features/auth/citizen_session_provider.dart';
+
+class AppNavigationDrawer extends ConsumerWidget {
   const AppNavigationDrawer({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final session = ref.watch(citizenSessionProvider);
     return Drawer(
       child: SafeArea(
         child: Column(
@@ -26,13 +31,20 @@ class AppNavigationDrawer extends StatelessWidget {
                   ),
                   const SizedBox(height: 12),
                   const Text(
-                    'JanSetu',
+                    AppConstants.appName,
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
+                  if (session != null) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      '+91 ${session.phone}',
+                      style: const TextStyle(color: Colors.white70, fontSize: 13),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -54,10 +66,18 @@ class AppNavigationDrawer extends StatelessWidget {
             ),
             ListTile(
               leading: const Icon(Icons.assignment_outlined),
-              title: const Text('View Tickets'),
+              title: const Text('My Tickets'),
               onTap: () {
                 Navigator.of(context).pop();
                 context.go('/tracking');
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.recycling_rounded),
+              title: const Text('Which Bin? Guide'),
+              onTap: () {
+                Navigator.of(context).pop();
+                context.go('/guide');
               },
             ),
             ListTile(
@@ -80,15 +100,16 @@ class AppNavigationDrawer extends StatelessWidget {
             ListTile(
               leading: const Icon(Icons.logout, color: Colors.red),
               title: const Text('Logout', style: TextStyle(color: Colors.red)),
-              onTap: () {
+              onTap: () async {
                 Navigator.of(context).pop();
-                context.go('/');
+                await ref.read(citizenSessionProvider.notifier).logout();
+                if (context.mounted) context.go('/');
               },
             ),
             const Padding(
               padding: EdgeInsets.all(16),
               child: Text(
-                'Demo build for civic issue reporting',
+                'Clean & Green civic action - SIH 2026',
                 style: TextStyle(color: Colors.grey, fontSize: 12),
               ),
             ),

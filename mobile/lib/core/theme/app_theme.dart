@@ -5,6 +5,8 @@ class AppTheme {
   static const Color accentBlue = Color(0xFF2563EB);
   static const Color accentOrange = Color(0xFFEA580C);
   static const Color accentGreen = Color(0xFF16A34A);
+  static const Color swachhGreen = Color(0xFF136F3C);
+  static const Color swachhGreenSoft = Color(0xFFE3F2E9);
   static const Color backgroundColor = Color(0xFFF8FAFC);
   static const Color cardColor = Colors.white;
 
@@ -17,7 +19,6 @@ class AppTheme {
         seedColor: accentBlue,
         primary: accentBlue,
         secondary: accentOrange,
-        background: backgroundColor,
         surface: cardColor,
       ),
       textTheme: const TextTheme(

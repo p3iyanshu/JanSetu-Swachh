@@ -1,37 +1,41 @@
 import 'package:flutter/material.dart';
 
+IconData categoryIconData(String? category) {
+  switch (category) {
+    case 'garbage_overflow':
+      return Icons.delete_outline_rounded;
+    case 'illegal_dumping':
+      return Icons.report_problem_outlined;
+    case 'missed_pickup':
+      return Icons.local_shipping_outlined;
+    case 'unsegregated_waste':
+      return Icons.recycling_rounded;
+    case 'waste_burning':
+      return Icons.local_fire_department_outlined;
+    case 'public_toilet':
+      return Icons.wc_rounded;
+    case 'pothole':
+      return Icons.add_road_rounded;
+    case 'water_leakage':
+      return Icons.water_drop_outlined;
+    case 'sewage_overflow':
+      return Icons.plumbing_rounded;
+    case 'broken_streetlight':
+      return Icons.lightbulb_outline_rounded;
+    default:
+      return Icons.build_circle_outlined;
+  }
+}
+
 class CategoryIcon extends StatelessWidget {
   final String category;
   final double size;
+  final Color? color;
 
-  const CategoryIcon({Key? key, required this.category, this.size = 24.0}) : super(key: key);
+  const CategoryIcon({super.key, required this.category, this.size = 24.0, this.color});
 
   @override
   Widget build(BuildContext context) {
-    IconData icon;
-    switch (category) {
-      case 'garbage_overflow':
-        icon = Icons.delete_outline_rounded;
-        break;
-      case 'pothole':
-        icon = Icons.add_road_rounded;
-        break;
-      case 'water_leakage':
-        icon = Icons.water_drop_outlined;
-        break;
-      case 'sewage_overflow':
-        icon = Icons.plumbing_rounded;
-        break;
-      case 'broken_streetlight':
-        icon = Icons.lightbulb_outline_rounded;
-        break;
-      case 'illegal_dumping':
-        icon = Icons.report_problem_outlined;
-        break;
-      default:
-        icon = Icons.build_circle_outlined;
-    }
-
-    return Icon(icon, size: size);
+    return Icon(categoryIconData(category), size: size, color: color);
   }
 }

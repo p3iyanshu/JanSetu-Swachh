@@ -31,6 +31,10 @@ class ReportState {
   final String? locationMessage;
   final bool isLocating;
   final String selectedCategory;
+  /// True once the citizen picked the issue type themselves (tapped a
+  /// category or came in from a quick-report tile) - AI suggestions from a
+  /// later photo then only advise instead of overriding their choice.
+  final bool categoryChosenByUser;
   final bool isClassifyingImage;
   final String? imageClassificationMessage;
   final String? imageClassificationError;
@@ -41,6 +45,7 @@ class ReportState {
   final List<ReportModel> submittedTickets;
   final String? lastCreatedTicketId;
   final String? voiceError;
+  final String? submitError;
 
   ReportState({
     this.imagePath,
@@ -50,6 +55,7 @@ class ReportState {
     this.locationMessage,
     this.isLocating = false,
     this.selectedCategory = '',
+    this.categoryChosenByUser = false,
     this.isClassifyingImage = false,
     this.imageClassificationMessage,
     this.imageClassificationError,
@@ -60,6 +66,7 @@ class ReportState {
     this.submittedTickets = const [],
     this.lastCreatedTicketId,
     this.voiceError,
+    this.submitError,
   });
 
   ReportState copyWith({
@@ -71,6 +78,7 @@ class ReportState {
     bool clearLocationMessage = false,
     bool? isLocating,
     String? selectedCategory,
+    bool? categoryChosenByUser,
     bool? isClassifyingImage,
     String? imageClassificationMessage,
     String? imageClassificationError,
@@ -84,6 +92,8 @@ class ReportState {
     String? lastCreatedTicketId,
     String? voiceError,
     bool clearVoiceError = false,
+    String? submitError,
+    bool clearSubmitError = false,
   }) {
     return ReportState(
       imagePath: imagePath ?? this.imagePath,
@@ -94,6 +104,7 @@ class ReportState {
           clearLocationMessage ? null : locationMessage ?? this.locationMessage,
       isLocating: isLocating ?? this.isLocating,
       selectedCategory: selectedCategory ?? this.selectedCategory,
+      categoryChosenByUser: categoryChosenByUser ?? this.categoryChosenByUser,
       isClassifyingImage: isClassifyingImage ?? this.isClassifyingImage,
       imageClassificationMessage: clearImageClassificationMessage
           ? null
@@ -108,6 +119,7 @@ class ReportState {
       submittedTickets: submittedTickets ?? this.submittedTickets,
       lastCreatedTicketId: lastCreatedTicketId ?? this.lastCreatedTicketId,
       voiceError: clearVoiceError ? null : voiceError ?? this.voiceError,
+      submitError: clearSubmitError ? null : submitError ?? this.submitError,
     );
   }
 }
@@ -208,8 +220,17 @@ class ReportNotifier extends StateNotifier<ReportState> {
       final category = result['category']?.toString();
       final label = result['label']?.toString() ?? _categoryLabel(category);
       final detected = result['detected'] == true &&
-          category != null &&
-          AppConstants.categories.any((item) => item['id'] == category);
+          AppConstants.isSelectableCategory(category);
+
+      if (detected && state.categoryChosenByUser && state.selectedCategory != category) {
+        state = state.copyWith(
+          isClassifyingImage: false,
+          imageClassificationMessage:
+              'AI thinks this looks like $label. Keeping your choice - change it if needed.',
+          clearImageClassificationError: true,
+        );
+        return;
+      }
 
       if (detected) {
         state = state.copyWith(
@@ -239,8 +260,9 @@ class ReportNotifier extends StateNotifier<ReportState> {
   }
 
   String _categoryLabel(String? category) {
-    final match = AppConstants.categories.where((item) => item['id'] == category);
-    return match.isEmpty ? 'Issue Type' : match.first['label'].toString();
+    return AppConstants.isSelectableCategory(category)
+        ? AppConstants.categoryLabel(category)
+        : 'Issue Type';
   }
 
   Future<void> pickFromCamera() async {
@@ -250,7 +272,7 @@ class ReportNotifier extends StateNotifier<ReportState> {
         imageQuality: 85,
       );
       if (image != null) {
-        state = state.copyWith(imagePath: image.path);
+        state = state.copyWith(imagePath: image.path, clearSubmitError: true);
         await _classifySelectedImage(image.path);
       }
     } catch (_) {}
@@ -263,7 +285,7 @@ class ReportNotifier extends StateNotifier<ReportState> {
         imageQuality: 85,
       );
       if (image != null) {
-        state = state.copyWith(imagePath: image.path);
+        state = state.copyWith(imagePath: image.path, clearSubmitError: true);
         await _classifySelectedImage(image.path);
       }
     } catch (_) {}
@@ -362,14 +384,20 @@ class ReportNotifier extends StateNotifier<ReportState> {
   /// the citizen navigates to the Report Issue screen so a previous
   /// photo/category/location/description never carries over into the next
   /// ticket.
-  void resetForm() {
-    state = ReportState();
+  void resetForm({String? initialCategory}) {
+    final preset = AppConstants.isSelectableCategory(initialCategory) ? initialCategory! : '';
+    state = ReportState(
+      selectedCategory: preset,
+      categoryChosenByUser: preset.isNotEmpty,
+    );
     captureAutoGPS();
   }
 
   void setCategory(String category) {
     state = state.copyWith(
       selectedCategory: category,
+      categoryChosenByUser: true,
+      clearSubmitError: true,
       imageClassificationMessage:
           'Issue type changed manually. AI suggestion will not override this choice.',
       clearImageClassificationError: true,
@@ -430,46 +458,62 @@ class ReportNotifier extends StateNotifier<ReportState> {
     }
   }
 
-  Future<void> refreshTickets() async {
-    final reports = await repository.getReports();
-    if (reports.isNotEmpty) {
+  Future<void> refreshTickets({int? userId}) async {
+    final reports = await repository.getReports(userId: userId);
+    if (reports == null) return;
+    if (reports.isNotEmpty || userId != null) {
       state = state.copyWith(submittedTickets: reports);
     }
   }
 
-  Future<bool> submitReport() async {
-    state = state.copyWith(isSubmitting: true);
-    final String newTicketId =
-        'JAN-${DateTime.now().year}-${(state.submittedTickets.length + 103).toString().padLeft(5, '0')}';
+  Future<bool> submitReport({int? userId}) async {
+    // The citizen's photo is the "before" evidence the worker's geo-tagged
+    // "after" photo is compared against, so a report can't go without one.
+    if (state.imagePath == null) {
+      state = state.copyWith(submitError: 'Add a photo of the issue before submitting.');
+      return false;
+    }
+    if (state.selectedCategory.isEmpty) {
+      state = state.copyWith(submitError: 'Select the issue type before submitting.');
+      return false;
+    }
 
-    String photoUrl = 'https://images.unsplash.com/photo-1515162816999-a0c47dc192f7';
-    if (state.imagePath != null) {
-      try {
-        photoUrl = await repository.uploadPhoto(state.imagePath!);
-      } catch (_) {
-        // Upload failed (e.g. offline) - fall back to the placeholder photo
-        // rather than sending a device-local file path as if it were a URL.
-      }
+    state = state.copyWith(isSubmitting: true, clearSubmitError: true);
+
+    final String photoUrl;
+    try {
+      photoUrl = await repository.uploadPhoto(state.imagePath!);
+    } catch (_) {
+      state = state.copyWith(
+        isSubmitting: false,
+        submitError: 'Could not reach the JanSetu server to upload the photo. Check the phone is on the same Wi-Fi as the server and try again.',
+      );
+      return false;
     }
 
     final report = ReportModel(
-      ticketId: newTicketId,
       photoUrl: photoUrl,
       latitude: state.latitude,
       longitude: state.longitude,
-      category:
-          state.selectedCategory.isEmpty ? 'other' : state.selectedCategory,
-      description: state.description.isEmpty
-          ? 'Civic issue reported by citizen.'
-          : state.description,
+      category: state.selectedCategory,
+      description: state.description.trim().isEmpty
+          ? '${AppConstants.categoryLabel(state.selectedCategory)} reported by citizen.'
+          : state.description.trim(),
       status: 'submitted',
       createdAt: DateTime.now().toString().substring(0, 16),
     );
 
-    ReportModel createdReport = report;
+    final ReportModel createdReport;
     try {
-      createdReport = await repository.submitReport(report);
-    } catch (_) {}
+      createdReport = await repository.submitReport(report, userId: userId);
+    } catch (_) {
+      state = state.copyWith(
+        isSubmitting: false,
+        submitError:
+            'Could not reach the JanSetu server. Check the phone is on the same Wi-Fi as the server and try again.',
+      );
+      return false;
+    }
 
     final updatedList = [createdReport, ...state.submittedTickets];
     state = state.copyWith(

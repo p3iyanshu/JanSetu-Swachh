@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../core/constants/app_constants.dart';
 import '../../data/models/report_model.dart';
 import '../../widgets/app_navigation_drawer.dart';
+import '../../widgets/category_icon.dart';
 import '../../widgets/proof_photo_viewer.dart';
+import '../auth/citizen_session_provider.dart';
 import '../report/report_provider.dart';
 
 class TrackingScreen extends ConsumerStatefulWidget {
@@ -18,9 +21,13 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
   @override
   void initState() {
     super.initState();
-    Future.microtask(() {
-      ref.read(reportNotifierProvider.notifier).refreshTickets();
-    });
+    Future.microtask(_refresh);
+  }
+
+  Future<void> _refresh() {
+    return ref
+        .read(reportNotifierProvider.notifier)
+        .refreshTickets(userId: ref.read(citizenSessionProvider)?.userId);
   }
 
   Color _getStatusColor(String status) {
@@ -128,10 +135,10 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
             const SizedBox(height: 16),
             Row(
               children: [
-                Icon(Icons.build_circle_outlined, color: Colors.grey.shade700, size: 20),
+                CategoryIcon(category: ticket.category, color: Colors.grey.shade700, size: 20),
                 const SizedBox(width: 6),
                 Text(
-                  ticket.category.toUpperCase().replaceAll('_', ' '),
+                  AppConstants.categoryLabel(ticket.category),
                   style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
               ],
@@ -176,18 +183,17 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
   @override
   Widget build(BuildContext context) {
     final reportState = ref.watch(reportNotifierProvider);
-    final reportNotifier = ref.read(reportNotifierProvider.notifier);
     final tickets = reportState.submittedTickets;
 
     return Scaffold(
       drawer: const AppNavigationDrawer(),
       appBar: AppBar(
-        title: const Text('Track Civic Tickets',
+        title: const Text('My Tickets',
             style: TextStyle(fontSize: 19, fontWeight: FontWeight.bold)),
         actions: [
           IconButton(
             tooltip: 'Refresh',
-            onPressed: () => reportNotifier.refreshTickets(),
+            onPressed: _refresh,
             icon: const Icon(Icons.refresh_rounded),
           ),
         ],
@@ -196,10 +202,16 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
           ? Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
-                children: const [
-                  Icon(Icons.assignment_outlined, size: 64, color: Colors.grey),
-                  SizedBox(height: 12),
-                  Text('No tickets reported yet.', style: TextStyle(fontSize: 16, color: Colors.grey)),
+                children: [
+                  const Icon(Icons.assignment_outlined, size: 64, color: Colors.grey),
+                  const SizedBox(height: 12),
+                  const Text('No tickets reported yet.', style: TextStyle(fontSize: 16, color: Colors.grey)),
+                  const SizedBox(height: 16),
+                  OutlinedButton.icon(
+                    onPressed: () => context.go('/report'),
+                    icon: const Icon(Icons.add_a_photo_outlined),
+                    label: const Text('Report an issue'),
+                  ),
                 ],
               ),
             )
@@ -254,10 +266,10 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
                         const SizedBox(height: 12),
                         Row(
                           children: [
-                            Icon(Icons.build_circle_outlined, color: Colors.grey.shade700, size: 20),
+                            CategoryIcon(category: ticket.category, color: Colors.grey.shade700, size: 20),
                             const SizedBox(width: 6),
                             Text(
-                              ticket.category.toUpperCase().replaceAll('_', ' '),
+                              AppConstants.categoryLabel(ticket.category),
                               style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
                             ),
                           ],

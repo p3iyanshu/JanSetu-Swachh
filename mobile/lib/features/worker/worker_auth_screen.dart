@@ -1,3 +1,4 @@
+import '../../widgets/server_settings_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -87,7 +88,7 @@ class _WorkerAuthScreenState extends ConsumerState<WorkerAuthScreen> {
               const Icon(Icons.engineering_outlined, size: 56, color: AppTheme.primaryColor),
               const SizedBox(height: 12),
               const Text(
-                'JanSetu',
+                'JanSetu-Swachh',
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: AppTheme.primaryColor),
               ),
@@ -96,7 +97,15 @@ class _WorkerAuthScreenState extends ConsumerState<WorkerAuthScreen> {
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 16, color: AppTheme.accentOrange, fontWeight: FontWeight.w600),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 16),
+              ServerStatusBanner(
+                onConnected: () {
+                  if (ref.read(workerAuthProvider).departments.isEmpty) {
+                    ref.read(workerAuthProvider.notifier).loadDepartments();
+                  }
+                },
+              ),
+              const SizedBox(height: 16),
               _buildToggle(),
               const SizedBox(height: 20),
               if (_isSignup) ...[
