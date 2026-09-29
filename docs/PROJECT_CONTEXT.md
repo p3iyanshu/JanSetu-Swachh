@@ -6,14 +6,33 @@
 
 ## 1. What JanSetu is
 
-JanSetu is a crowdsourced civic issue reporting and resolution platform built for **Smart India Hackathon 2026** (Problem Statement SIH25031, Team JanSetu, Presidency University Bengaluru). Citizens photograph a civic problem (pothole, garbage, water leak, sewage overflow) in a mobile app, an AI model classifies it, it's auto-routed to the right municipal department, a department officer/worker resolves it with GPS-tagged photo proof, an admin reviews and approves the resolution, and the citizen confirms they're satisfied (or reopens it if not).
+JanSetu (branded **JanSetu-Swachh** for **Smart India Hackathon 2026**, Student Innovation problem statement SIH26195 — waste segregation, disposal and sanitation; Team JanSetu, Presidency University Bengaluru) is a crowdsourced civic issue reporting and resolution platform. Citizens photograph a civic or sanitation problem (garbage pile, dumping spot, missed pickup, mixed waste, waste burning, public toilet, pothole, water leak, sewage overflow) in a mobile app, an AI model classifies it, it's auto-routed to the right municipal department, a department officer/worker resolves it with GPS-tagged photo proof, an admin reviews and approves the resolution, and the citizen confirms they're satisfied (or reopens it if not).
+
+### Swachh (waste & sanitation) segment
+
+- Categories: `garbage_overflow`, `illegal_dumping`, `missed_pickup`, `unsegregated_waste`, `waste_burning`, `public_toilet` (`SWACHH_CATEGORIES` in `backend/app/models/__init__.py`). New enum values are added to the Postgres `categorytype` type by `ensure_runtime_schema()` in `app/main.py`.
+- `backend/app/api/swachh.py`: waste guide, optional AI item scan (`app/ml/waste_item_classifier.py`, needs `ROBOFLOW_WASTE_ITEM_MODEL_ID`), door-to-door `collection_logs`, segregation stats, garbage hotspots, sanitation summary, citizen Swachh points.
+- The waste guide data lives in `backend/app/services/waste_guide.py` **and** an offline copy in `mobile/lib/data/waste_guide_data.dart` — keep them in sync.
+- Mobile: citizen session (`features/auth/citizen_session_provider.dart`) so reports carry `user_id` and "My Tickets" shows only the citizen's own tickets; `/guide` (Which Bin?), Swachh quick-report tiles on home (`/report?category=...`), worker `/worker/collection` (shown to waste/sanitation department workers).
+- Dashboard: *Swachh Insights* tab (`dashboard/src/SwachhInsights.jsx`), SLA-overdue badges, "All waste & sanitation" and "SLA overdue only" filters. `dashboard_demo`'s `garbage` preset covers all Swachh categories.
+- Demo data: `python -m scripts.seed_swachh_demo` / `--clear` (tagged `[Demo]` tickets and `DEMO-` households). `scripts.reset_demo_data` also wipes collection logs.
+
+### Web portal (citizen, worker, admin)
+
+- `dashboard/` is now one portal for all three roles. `src/App.jsx` keeps the session (`localStorage` `jansetu_portal_session`) and routes to `citizen/CitizenApp.jsx`, `worker/WorkerApp.jsx` or `admin/AdminApp.jsx`; `portal/PortalLogin.jsx` is the login-type picker with pre-filled demo credentials (`portal/demoAccounts.js`, kept in sync with `backend/app/services/demo_accounts.py`). `?role=admin|worker|citizen` preselects the login type (the Electron exe opens with `?role=admin`).
+- Demo accounts `DEMO-ADMIN` / `DEMO-WORKER` (password `Demo@123`) are created on backend startup unless `JANSETU_DEMO_ACCOUNTS=0`; `seed_swachh_demo` attaches sample tickets to the demo citizen (`9876543210`) and demo worker.
+
+### Builds & server address
+
+- `admin_desktop/`: Electron wrapper that packages `dashboard/` as a portable Windows exe (`npm run dist`; set `JANSETU_API_BASE_URL` to change the baked-in default). `main.js` serves the built dashboard from `127.0.0.1:47821` so localStorage persists between launches.
+- Server address is configurable at runtime: mobile `core/services/server_config.dart` + `widgets/server_settings_dialog.dart` (gear on login; `ApiClient` re-reads the base URL per request), dashboard `getApiBaseUrl()` / `testAndSaveServer()` in `src/api/client.js` (localStorage `jansetu_api_base_url`, then `VITE_API_BASE_URL`, then localhost).
 
 ## 2. The four services
 
 | Service | Path | Stack | Port (local) |
 |---|---|---|---|
 | Backend API | `/backend` | FastAPI (Python), SQLAlchemy, PostgreSQL | 8000 |
-| Admin Dashboard | `/dashboard` | React 18 + Vite, plain CSS | 5173 |
+| Web portal (citizen, worker, admin) | `/dashboard` | React 18 + Vite, plain CSS | 5173 |
 | Mobile App (citizen + worker) | `/mobile` | Flutter, Riverpod, go_router | — (device/emulator) |
 | Voice-to-Text Service | `/voice-backend` | FastAPI, wraps Sarvam AI's speech-to-text API | 8001 |
 | Solid Waste Demo Mobile App (citizen + worker) | `/mobile_demo` | Flutter, same stack as `/mobile` | — (device/emulator) |

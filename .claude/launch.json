@@ -3,32 +3,37 @@
   "configurations": [
     {
       "name": "backend",
-      "runtimeExecutable": "backend/venv/Scripts/python.exe",
+      "runtimeExecutable": "venv/Scripts/python.exe",
       "runtimeArgs": ["-m", "uvicorn", "app.main:app", "--host", "127.0.0.1", "--port", "8000"],
+      "cwd": "backend",
       "port": 8000
     },
     {
       "name": "dashboard",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev", "--", "--host", "127.0.0.1", "--port", "5173"],
+      "cwd": "dashboard",
       "port": 5173
     },
     {
       "name": "dashboard_demo_pwd",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev:pwd", "--", "--host", "127.0.0.1"],
+      "cwd": "dashboard_demo",
       "port": 5175
     },
     {
       "name": "dashboard_demo_water",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev:water", "--", "--host", "127.0.0.1"],
+      "cwd": "dashboard_demo",
       "port": 5176
     },
     {
       "name": "dashboard_demo_garbage",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev:garbage", "--", "--host", "127.0.0.1"],
+      "cwd": "dashboard_demo",
       "port": 5174
     }
   ]
