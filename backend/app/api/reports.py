@@ -80,6 +80,11 @@ def create_report(report_in: ReportCreate, db: Session = Depends(get_db)):
     sla_deadline = calculate_sla_deadline(report_in.category)
     priority_score = calculate_priority_score(category=report_in.category, upvote_count=1)
     assigned_department = find_department_for_category(db, report_in.category)
+    # A stale citizen ID (e.g. the app kept a session across a demo-data
+    # reset) must not fail the whole report on a foreign-key error.
+    user_id = report_in.user_id
+    if user_id is not None and not db.query(User).filter(User.id == user_id).first():
+        user_id = None
 
     db_report = Report(
         photo_url=report_in.photo_url,
@@ -87,7 +92,7 @@ def create_report(report_in: ReportCreate, db: Session = Depends(get_db)):
         longitude=report_in.longitude,
         category=report_in.category,
         description=report_in.description,
-        user_id=report_in.user_id,
+        user_id=user_id,
         status=ReportStatus.ASSIGNED if assigned_department else ReportStatus.SUBMITTED,
         priority_score=priority_score,
         assigned_department_id=assigned_department.id if assigned_department else None,
@@ -121,9 +126,12 @@ def update_report_status(report_id: int, payload: StatusUpdateSchema, db: Sessio
 def list_reports(
     status: Optional[ReportStatus] = None,
     category: Optional[CategoryType] = None,
+    user_id: Optional[int] = None,
     db: Session = Depends(get_db)
 ):
     query = db.query(Report)
+    if user_id is not None:
+        query = query.filter(Report.user_id == user_id)
     if status:
         query = query.filter(Report.status == status)
     if category:

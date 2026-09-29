@@ -10,6 +10,10 @@ SEVERITY_WEIGHTS = {
     CategoryType.DAMAGED_PROPERTY: 2.5,
     CategoryType.ILLEGAL_DUMPING: 3.5,
     CategoryType.OTHER: 2.0,
+    CategoryType.WASTE_BURNING: 5.0,
+    CategoryType.PUBLIC_TOILET: 4.0,
+    CategoryType.MISSED_PICKUP: 3.5,
+    CategoryType.UNSEGREGATED_WASTE: 3.0,
 }
 
 def calculate_priority_score(

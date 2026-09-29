@@ -9,6 +9,10 @@ CATEGORY_DEPARTMENT_KEYWORDS = {
     CategoryType.SEWAGE: ["bwssb", "sewage"],
     CategoryType.GARBAGE: ["solid waste", "sanitation", "garbage"],
     CategoryType.ILLEGAL_DUMPING: ["solid waste", "sanitation", "garbage"],
+    CategoryType.UNSEGREGATED_WASTE: ["solid waste", "sanitation", "garbage"],
+    CategoryType.MISSED_PICKUP: ["solid waste", "sanitation", "garbage"],
+    CategoryType.WASTE_BURNING: ["solid waste", "sanitation", "garbage"],
+    CategoryType.PUBLIC_TOILET: ["sanitation", "solid waste"],
 }
 
 

@@ -77,6 +77,12 @@ def ensure_runtime_schema():
                 autocommit_connection.execute(
                     text("ALTER TYPE reportstatus ADD VALUE IF NOT EXISTS 'CANCELLED'")
                 )
+                # Swachh (waste & sanitation) categories added after the
+                # categorytype enum was first created.
+                for category_name in ("UNSEGREGATED_WASTE", "MISSED_PICKUP", "WASTE_BURNING", "PUBLIC_TOILET"):
+                    autocommit_connection.execute(
+                        text(f"ALTER TYPE categorytype ADD VALUE IF NOT EXISTS '{category_name}'")
+                    )
         except Exception:
             pass
 
@@ -96,17 +102,29 @@ def seed_database():
             if not exists:
                 db.add(department)
             db.commit()
+
+        from app.services.demo_accounts import ensure_demo_accounts
+
+        ensure_demo_accounts(db)
     finally:
         db.close()
 
 ensure_runtime_schema()
 seed_database()
 
+from app.services.discovery import start_discovery_responder
+
+start_discovery_responder()
+
 
 app = FastAPI(
-    title="JanSetu Civic Resolution API",
-    description="Backend service for SIH25031 Crowdsourced Civic Issue Reporting & Resolution System",
-    version="1.0.0"
+    title="JanSetu-Swachh API",
+    description=(
+        "Backend for JanSetu-Swachh (SIH26195, Clean & Green Technology): crowdsourced civic and "
+        "sanitation issue reporting, door-to-door waste segregation tracking, garbage hotspot "
+        "detection and verified resolution."
+    ),
+    version="1.1.0"
 )
 
 # CORS configuration
@@ -127,8 +145,8 @@ app.include_router(api_router, prefix="/api/v1")
 def health_check():
     return {
         "status": "healthy",
-        "service": "JanSetu Backend API",
-        "version": "1.0.0"
+        "service": "JanSetu-Swachh Backend API",
+        "version": "1.1.0"
     }
 
 if __name__ == "__main__":

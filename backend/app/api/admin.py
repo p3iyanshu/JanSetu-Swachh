@@ -255,7 +255,7 @@ def assign_worker(report_id: int, payload: AssignmentRequest, db: Session = Depe
             db,
             reporter,
             "Worker Assigned",
-            f"{officer.name} has been assigned to your {report.category.value} report.",
+            f"{officer.name} has been assigned to your {report.category.value.replace('_', ' ')} report.",
             report_id=report.id,
         )
 
@@ -291,7 +291,7 @@ def start_work(report_id: int, payload: StartWorkRequest, db: Session = Depends(
             db,
             reporter,
             "Work Started",
-            f"A worker has started resolving your {report.category.value} report.",
+            f"A worker has started resolving your {report.category.value.replace('_', ' ')} report.",
             report_id=report.id,
         )
 
@@ -382,7 +382,7 @@ def approve_resolution(report_id: int, payload: AdminReviewDecision, db: Session
             db,
             reporter,
             "Ticket Resolved",
-            f"Your {report.category.value} report has been resolved. Please confirm if you're satisfied.",
+            f"Your {report.category.value.replace('_', ' ')} report has been resolved. Please confirm if you're satisfied.",
             report_id=report.id,
         )
 

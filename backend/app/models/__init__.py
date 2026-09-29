@@ -35,6 +35,33 @@ class CategoryType(str, enum.Enum):
     ILLEGAL_DUMPING = "illegal_dumping"
     DAMAGED_PROPERTY = "damaged_public_property"
     OTHER = "other"
+    # Swachh (waste & sanitation) segment
+    UNSEGREGATED_WASTE = "unsegregated_waste"
+    MISSED_PICKUP = "missed_pickup"
+    WASTE_BURNING = "waste_burning"
+    PUBLIC_TOILET = "public_toilet"
+
+
+# Categories that make up the waste & sanitation (Swachh) segment - used for
+# hotspot detection, the Swachh dashboard KPIs and citizen impact points.
+SWACHH_CATEGORIES = (
+    CategoryType.GARBAGE,
+    CategoryType.ILLEGAL_DUMPING,
+    CategoryType.UNSEGREGATED_WASTE,
+    CategoryType.MISSED_PICKUP,
+    CategoryType.WASTE_BURNING,
+    CategoryType.PUBLIC_TOILET,
+)
+
+
+class SegregationStatus(str, enum.Enum):
+    """Outcome a sanitation worker records at a household during a
+    door-to-door collection round (SWM Rules 2026 four-stream segregation)."""
+    SEGREGATED = "segregated"
+    PARTIAL = "partial"
+    MIXED = "mixed"
+    NO_WASTE = "no_waste"
+    NOT_AVAILABLE = "not_available"
 
 class User(Base):
     __tablename__ = "users"
@@ -185,3 +212,24 @@ class NotificationEvent(Base):
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     sent_at = Column(DateTime, nullable=True)
     error_message = Column(String(500), nullable=True)
+
+
+class CollectionLog(Base):
+    """One household visit on a door-to-door waste collection round."""
+    __tablename__ = "collection_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    household_code = Column(String(50), index=True, nullable=False)
+    ward = Column(String(100), index=True, nullable=False)
+    status = Column(SQLEnum(SegregationStatus), nullable=False)
+    note = Column(String(500), nullable=True)
+    latitude = Column(Float, nullable=True)
+    longitude = Column(Float, nullable=True)
+    officer_id = Column(Integer, ForeignKey("officers.id"), nullable=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow, index=True)
+
+    officer = relationship("Officer")
+
+    @property
+    def officer_name(self):
+        return self.officer.name if self.officer else None

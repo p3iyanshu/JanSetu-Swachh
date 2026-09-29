@@ -2,7 +2,7 @@
 worker -> notification flow can be tested from a clean slate.
 
 Deletes (in FK-safe order): resolution records, escalation logs, notification
-events, reports, and officers. By default only officers whose emp_id starts
+events, reports, door-to-door collection logs, and officers. By default only officers whose emp_id starts
 with "TEST" are removed (case insensitive - leftovers from automated/manual
 test runs). Pass --all-officers to wipe every officer/admin/worker AND every
 citizen user (phone numbers, FCM tokens) for a completely fresh start
@@ -24,7 +24,7 @@ import argparse
 from sqlalchemy import text
 
 from app.database import SessionLocal
-from app.models import EscalationLog, NotificationEvent, Officer, Report, ResolutionRecord, User
+from app.models import CollectionLog, EscalationLog, NotificationEvent, Officer, Report, ResolutionRecord, User
 
 # Postgres-only: SQLite (the no-Postgres dev fallback) doesn't have named
 # sequences, so this is skipped there - see _reset_id_sequences below.
@@ -33,6 +33,7 @@ _ID_SEQUENCES = [
     "resolution_records_id_seq",
     "escalation_logs_id_seq",
     "notification_events_id_seq",
+    "collection_logs_id_seq",
 ]
 
 
@@ -50,6 +51,7 @@ def reset_demo_data(delete_all_officers: bool = False) -> None:
         escalation_count = db.query(EscalationLog).delete(synchronize_session=False)
         notification_count = db.query(NotificationEvent).delete(synchronize_session=False)
         report_count = db.query(Report).delete(synchronize_session=False)
+        collection_count = db.query(CollectionLog).delete(synchronize_session=False)
 
         if delete_all_officers:
             officer_count = db.query(Officer).delete(synchronize_session=False)
@@ -70,6 +72,7 @@ def reset_demo_data(delete_all_officers: bool = False) -> None:
         print(f"  escalation_logs deleted:    {escalation_count}")
         print(f"  notification_events deleted: {notification_count}")
         print(f"  reports deleted:            {report_count}")
+        print(f"  collection_logs deleted:    {collection_count}")
         print("  ticket ID counter reset to: 1")
         if delete_all_officers:
             print(f"  ALL officers/admins/workers deleted: {officer_count}")

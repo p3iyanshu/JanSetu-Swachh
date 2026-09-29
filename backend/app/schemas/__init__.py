@@ -1,7 +1,7 @@
 from pydantic import BaseModel, ConfigDict, Field
 from typing import Optional, List
 from datetime import datetime
-from app.models import UserRole, ReportStatus, CategoryType
+from app.models import UserRole, ReportStatus, CategoryType, SegregationStatus
 
 # User Schemas
 class UserBase(BaseModel):
@@ -116,3 +116,27 @@ class EscalationLogRead(BaseModel):
 class DeviceTokenRegister(BaseModel):
     phone: str
     fcm_token: str
+
+# Swachh (waste & sanitation) Schemas
+class CollectionLogCreate(BaseModel):
+    household_code: str = Field(..., min_length=1, max_length=50)
+    ward: str = Field(..., min_length=1, max_length=100)
+    status: SegregationStatus
+    note: Optional[str] = Field(None, max_length=500)
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    officer_id: Optional[int] = None
+
+class CollectionLogRead(BaseModel):
+    id: int
+    household_code: str
+    ward: str
+    status: SegregationStatus
+    note: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    officer_id: Optional[int] = None
+    officer_name: Optional[str] = None
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)

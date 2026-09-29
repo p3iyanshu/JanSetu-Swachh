@@ -11,6 +11,11 @@ SLA_HOURS = {
     CategoryType.ILLEGAL_DUMPING: 48,
     CategoryType.DAMAGED_PROPERTY: 96,
     CategoryType.OTHER: 48,
+    # Swachh segment - open burning is a health hazard, so it's cleared fastest
+    CategoryType.WASTE_BURNING: 12,
+    CategoryType.MISSED_PICKUP: 24,
+    CategoryType.PUBLIC_TOILET: 24,
+    CategoryType.UNSEGREGATED_WASTE: 48,
 }
 
 def calculate_sla_deadline(category: CategoryType, created_at: datetime = None) -> datetime:
