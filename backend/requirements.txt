@@ -19,3 +19,4 @@ ultralytics>=8.1.0
 transformers>=4.38.0
 inference-sdk>=0.51.3
 firebase-admin>=6.5.0
+onnxruntime>=1.18.0

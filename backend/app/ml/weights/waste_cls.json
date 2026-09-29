@@ -1,0 +1,14 @@
+{
+  "names": [
+    "biodegradable",
+    "cardboard",
+    "cloth",
+    "glass",
+    "hazardous",
+    "medical",
+    "metal",
+    "paper",
+    "plastic"
+  ],
+  "imgsz": 224
+}

@@ -117,7 +117,7 @@ LABEL_KEYWORDS = {
     "dry": ["plastic", "paper", "cardboard", "carton", "metal", "glass", "bottle", "can",
             "tin", "wrapper", "packet", "cloth", "textile", "rubber", "wood", "thermocol",
             "styrofoam", "recyclable", "dry", "trash"],
-    "sanitary": ["diaper", "pad", "sanitary", "tampon", "mask", "glove", "bandage", "cotton"],
+    "sanitary": ["diaper", "pad", "sanitary", "tampon", "mask", "glove", "bandage", "cotton", "medical"],
     "special_care": ["battery", "batteries", "e-waste", "ewaste", "electronic", "bulb",
                      "cfl", "tube light", "tubelight", "medicine", "pill", "syringe", "needle", "paint",
                      "chemical", "pesticide", "hazard", "aerosol", "thermometer", "cartridge"],

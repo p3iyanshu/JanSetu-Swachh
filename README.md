@@ -206,6 +206,10 @@ npm run dist           # -> admin_desktop/release/JanSetu-Swachh-Admin-<version>
 
 Free-tier cloud deployment (Neon database, Render backend via `render.yaml`, Netlify web portal via `dashboard/netlify.toml`) is described step by step in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md). Photos are stored in the database (`MEDIA_STORAGE=db`) so they survive Render's ephemeral disk.
 
+### AI models
+
+The AI suggestion on a citizen's photo (garbage, pothole, sewage, water leak) and the "Which Bin?" item scan run on image classifiers we trained ourselves. They run inside the backend with onnxruntime, so they need no internet access or paid API. Training data, method and accuracy are described in [ml/README.md](ml/README.md): 93.5% for waste items, and 7/9 on real citizen photos for civic issues, compared with 4/9 for the previous hosted models.
+
 ### Optional services
 - **Voice notes:** `voice-backend/` (port 8001) needs `SARVAM_API_KEY`.
 - **AI issue detection:** Roboflow keys in `backend/.env` (see `.env.example`).

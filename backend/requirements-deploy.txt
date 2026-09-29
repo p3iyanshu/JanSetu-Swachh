@@ -1,7 +1,7 @@
 # Lean dependency set for cloud hosting (Render free tier: 512 MB RAM).
-# Leaves out torch / ultralytics / transformers, which the API doesn't need
-# unless the locally trained image models are installed - without them the
-# API falls back to the hosted Roboflow models for AI suggestions.
+# Leaves out torch / ultralytics / transformers: the trained JanSetu-Swachh
+# image models run through onnxruntime instead (app/ml/weights/*.onnx), with
+# the hosted Roboflow models as a fallback.
 fastapi>=0.110.0
 uvicorn[standard]>=0.28.0
 sqlalchemy>=2.0.28
@@ -14,3 +14,4 @@ httpx>=0.27.0
 pillow>=10.2.0
 inference-sdk>=0.51.3
 firebase-admin>=6.5.0
+onnxruntime>=1.18.0

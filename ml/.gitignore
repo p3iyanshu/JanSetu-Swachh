@@ -1,0 +1,6 @@
+venv/
+datasets/
+runs/
+*.cache
+yolo11n-cls.pt
+weights/

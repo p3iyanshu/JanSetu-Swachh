@@ -1,0 +1,10 @@
+{
+  "names": [
+    "garbage",
+    "other",
+    "pothole",
+    "sewage",
+    "water_leakage"
+  ],
+  "imgsz": 256
+}
