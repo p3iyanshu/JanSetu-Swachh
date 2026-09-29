@@ -1,9 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
+  AlertTriangle,
   Bell,
   Camera,
   CheckCircle2,
   Clock,
+  Leaf,
   LogOut,
   MapPin,
   ShieldCheck,
@@ -24,7 +26,11 @@ import { api, resolveMediaUrl } from './api/client';
 const DEPARTMENT_PRESETS = {
   pwd: { keyword: 'pwd', label: 'PWD — Pothole', categories: ['pothole'] },
   water: { keyword: 'bwssb', label: 'BWSSB — Water & Sewage', categories: ['water_leakage', 'sewage_overflow'] },
-  garbage: { keyword: 'solid waste', label: 'BBMP — Garbage', categories: ['garbage_overflow'] },
+  garbage: {
+    keyword: 'solid waste',
+    label: 'BBMP — Waste & Sanitation',
+    categories: ['garbage_overflow', 'illegal_dumping', 'missed_pickup', 'unsegregated_waste', 'waste_burning', 'public_toilet'],
+  },
 };
 const DEMO_PRESET = DEPARTMENT_PRESETS[import.meta.env.VITE_DEMO_DEPARTMENT] || DEPARTMENT_PRESETS.garbage;
 const isDemoDepartment = (name) => (name || '').toLowerCase().includes(DEMO_PRESET.keyword);
@@ -45,14 +51,42 @@ const categoryLabel = {
   broken_streetlight: 'Streetlight / Electricity',
   water_leakage: 'Water Leakage',
   sewage_overflow: 'Sewage Overflow',
-  illegal_dumping: 'Illegal Dumping',
+  illegal_dumping: 'Dumping Spot',
   damaged_public_property: 'Public Property Damage',
   other: 'Other',
+  missed_pickup: 'Missed Pickup',
+  unsegregated_waste: 'Mixed (Unsegregated) Waste',
+  waste_burning: 'Waste Burning',
+  public_toilet: 'Public Toilet',
 };
 
+const SWACHH_CATEGORIES = new Set([
+  'garbage_overflow',
+  'illegal_dumping',
+  'missed_pickup',
+  'unsegregated_waste',
+  'waste_burning',
+  'public_toilet',
+]);
+
+const OPEN_STATUSES = new Set(['submitted', 'assigned', 'in_progress', 'reopened']);
+
+// Backend timestamps are naive UTC - without the "Z" the browser would
+// read them as local time and every date would be off by the UTC offset.
+function parseServerDate(value) {
+  if (!value) return null;
+  return new Date(/[zZ]|[+-]\d\d:\d\d$/.test(value) ? value : `${value}Z`);
+}
+
 function formatDate(value) {
-  if (!value) return 'Not set';
-  return new Date(value).toLocaleString();
+  const date = parseServerDate(value);
+  if (!date) return 'Not set';
+  return date.toLocaleString();
+}
+
+function isOverdue(ticket) {
+  const deadline = parseServerDate(ticket.sla_deadline);
+  return Boolean(deadline) && OPEN_STATUSES.has(ticket.status) && deadline < new Date();
 }
 
 function LoginScreen({ onLogin }) {
@@ -82,7 +116,7 @@ function LoginScreen({ onLogin }) {
         <div className="brand-mark">
           <img src="/indian-emblem.png" alt="Emblem of India" />
         </div>
-        <h1>JanSetu</h1>
+        <h1>JanSetu-Swachh</h1>
         <p>Admin — {DEMO_PRESET.label} Demo</p>
 
         <div className="segmented">
@@ -284,9 +318,19 @@ function TicketCard({ ticket, currentOfficer, onAssign, onStart, onResolve, onAp
       <div className="ticket-top">
         <div>
           <strong>JAN-{String(ticket.id).padStart(6, '0')}</strong>
-          <span>{categoryLabel[ticket.category] || ticket.category}</span>
+          <span>
+            {categoryLabel[ticket.category] || ticket.category}
+            {SWACHH_CATEGORIES.has(ticket.category) && <em className="swachh-tag"><Leaf size={12} /> Swachh</em>}
+          </span>
         </div>
-        <span className={`badge badge-${ticket.status}`}>{statusLabel[ticket.status] || ticket.status}</span>
+        <div className="ticket-badges">
+          {isOverdue(ticket) && (
+            <span className="badge badge-overdue" title={`SLA deadline ${formatDate(ticket.sla_deadline)}`}>
+              <AlertTriangle size={12} /> SLA overdue
+            </span>
+          )}
+          <span className={`badge badge-${ticket.status}`}>{statusLabel[ticket.status] || ticket.status}</span>
+        </div>
       </div>
       <p>{ticket.description || 'No description provided.'}</p>
       {ticket.photo_url && (
@@ -311,6 +355,7 @@ function TicketCard({ ticket, currentOfficer, onAssign, onStart, onResolve, onAp
             : 'Not assigned'}
         </span>
         <span>ETA: {formatDate(ticket.estimated_completion_at)}</span>
+        <span>SLA: {formatDate(ticket.sla_deadline)}</span>
       </div>
 
       {ticket.status !== 'resolved' && ticket.status !== 'cancelled' && !ticket.assigned_officer_id && (
@@ -460,7 +505,7 @@ export default function App() {
   }, [me?.id]);
 
   useEffect(() => {
-    document.title = `JanSetu — ${DEMO_PRESET.label} Demo Admin`;
+    document.title = `JanSetu-Swachh — ${DEMO_PRESET.label} Demo Admin`;
   }, []);
 
   // "Needs attention" = things sitting in the admin's court right now: brand
@@ -483,7 +528,9 @@ export default function App() {
     return source.filter((report) => {
       if (statusFilter !== 'all' && report.status !== statusFilter) return false;
       if (departmentFilter !== 'all' && String(report.assigned_department_id) !== departmentFilter) return false;
-      if (categoryFilter !== 'all' && report.category !== categoryFilter) return false;
+      if (categoryFilter === 'overdue') {
+        if (!isOverdue(report)) return false;
+      } else if (categoryFilter !== 'all' && report.category !== categoryFilter) return false;
       if (assignmentFilter === 'assigned' && !report.assigned_officer_id) return false;
       if (assignmentFilter === 'unassigned' && report.assigned_officer_id) return false;
       if (needle) {
@@ -541,7 +588,7 @@ export default function App() {
           <img src="/indian-emblem.png" alt="Emblem of India" />
         </div>
         <div>
-          <h1>JanSetu Admin</h1>
+          <h1>JanSetu-Swachh Admin</h1>
           <p>
             {me.name} · {departments.find((department) => department.id === me.department_id)?.name || `${DEMO_PRESET.label} Demo Admin`} · {DEMO_PRESET.label} Tickets Only
           </p>
@@ -638,6 +685,7 @@ export default function App() {
         </select>
         <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
           <option value="all">All categories</option>
+          <option value="overdue">SLA overdue only</option>
           {DEMO_PRESET.categories.map((category) => (
             <option key={category} value={category}>
               {categoryLabel[category] || category}

@@ -647,6 +647,38 @@ button:disabled {
   border: 1px solid rgba(20, 33, 61, 0.25);
 }
 
+/* ---------- Ticket additions (ported from dashboard/) ---------- */
+
+.ticket-badges {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.badge-overdue {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--status-sla-breached);
+  background: var(--status-sla-breached-soft);
+}
+
+.swachh-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: 8px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  color: var(--accent-green);
+  background: var(--accent-green-soft);
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 800;
+  vertical-align: middle;
+}
+
 @media (max-width: 820px) {
   .admin-header,
   .metrics-grid,

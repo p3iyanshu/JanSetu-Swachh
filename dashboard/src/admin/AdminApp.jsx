@@ -1,9 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
+  AlertTriangle,
   Bell,
   Camera,
   CheckCircle2,
   Clock,
+  LayoutList,
+  Leaf,
   LogOut,
   MapPin,
   ShieldCheck,
@@ -11,105 +14,13 @@ import {
   UserPlus,
   Users,
   Verified,
+  X,
   XCircle,
 } from 'lucide-react';
-import { api, resolveMediaUrl } from './api/client';
-
-const statusLabel = {
-  submitted: 'Submitted',
-  assigned: 'Assigned to Dept',
-  in_progress: 'In Progress',
-  pending_approval: 'Pending Admin Approval',
-  resolved: 'Resolved',
-  reopened: 'Reopened',
-  cancelled: 'Cancelled by Citizen',
-};
-
-const categoryLabel = {
-  pothole: 'Pothole',
-  garbage_overflow: 'Garbage Overflow',
-  broken_streetlight: 'Streetlight / Electricity',
-  water_leakage: 'Water Leakage',
-  sewage_overflow: 'Sewage Overflow',
-  illegal_dumping: 'Illegal Dumping',
-  damaged_public_property: 'Public Property Damage',
-  other: 'Other',
-};
-
-function formatDate(value) {
-  if (!value) return 'Not set';
-  return new Date(value).toLocaleString();
-}
-
-function LoginScreen({ onLogin }) {
-  const [mode, setMode] = useState('login');
-  const [form, setForm] = useState({
-    name: '',
-    emp_id: '',
-    password: '',
-    contact: '',
-  });
-  const [error, setError] = useState('');
-
-  async function submit(event) {
-    event.preventDefault();
-    setError('');
-    try {
-      const officer = mode === 'login' ? await api.login(form) : await api.signup(form);
-      onLogin(officer);
-    } catch (err) {
-      setError(err.message);
-    }
-  }
-
-  return (
-    <main className="login-shell">
-      <form className="login-panel" onSubmit={submit}>
-        <div className="brand-mark">
-          <img src="/indian-emblem.png" alt="Emblem of India" />
-        </div>
-        <h1>JanSetu</h1>
-        <p>Admin</p>
-
-        <div className="segmented">
-          <button type="button" className={mode === 'login' ? 'active' : ''} onClick={() => setMode('login')}>
-            Sign In
-          </button>
-          <button type="button" className={mode === 'signup' ? 'active' : ''} onClick={() => setMode('signup')}>
-            Signup
-          </button>
-        </div>
-
-        {mode === 'signup' && (
-          <>
-            <label>
-              Admin Name
-              <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
-            </label>
-            <label>
-              Contact
-              <input value={form.contact} onChange={(e) => setForm({ ...form, contact: e.target.value })} />
-            </label>
-          </>
-        )}
-
-        <label>
-          Admin ID
-          <input value={form.emp_id} onChange={(e) => setForm({ ...form, emp_id: e.target.value })} required />
-        </label>
-        <label>
-          Password
-          <input type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} required />
-        </label>
-
-        {error && <div className="error">{error}</div>}
-        <button className="primary" type="submit">
-          {mode === 'login' ? 'SIGN IN' : 'REGISTER'}
-        </button>
-      </form>
-    </main>
-  );
-}
+import { api, resolveMediaUrl } from '../api/client';
+import { SWACHH_CATEGORIES, categoryLabel } from '../lib/categories';
+import { formatDate, isOverdue, statusLabel } from '../lib/format';
+import SwachhInsights from './SwachhInsights';
 
 function AssignWorkerControl({ ticket, onAssign }) {
   const [eligible, setEligible] = useState(null);
@@ -270,9 +181,19 @@ function TicketCard({ ticket, currentOfficer, onAssign, onStart, onResolve, onAp
       <div className="ticket-top">
         <div>
           <strong>JAN-{String(ticket.id).padStart(6, '0')}</strong>
-          <span>{categoryLabel[ticket.category] || ticket.category}</span>
+          <span>
+            {categoryLabel[ticket.category] || ticket.category}
+            {SWACHH_CATEGORIES.has(ticket.category) && <em className="swachh-tag"><Leaf size={12} /> Swachh</em>}
+          </span>
         </div>
-        <span className={`badge badge-${ticket.status}`}>{statusLabel[ticket.status] || ticket.status}</span>
+        <div className="ticket-badges">
+          {isOverdue(ticket) && (
+            <span className="badge badge-overdue" title={`SLA deadline ${formatDate(ticket.sla_deadline)}`}>
+              <AlertTriangle size={12} /> SLA overdue
+            </span>
+          )}
+          <span className={`badge badge-${ticket.status}`}>{statusLabel[ticket.status] || ticket.status}</span>
+        </div>
       </div>
       <p>{ticket.description || 'No description provided.'}</p>
       {ticket.photo_url && (
@@ -297,6 +218,7 @@ function TicketCard({ ticket, currentOfficer, onAssign, onStart, onResolve, onAp
             : 'Not assigned'}
         </span>
         <span>ETA: {formatDate(ticket.estimated_completion_at)}</span>
+        <span>SLA: {formatDate(ticket.sla_deadline)}</span>
       </div>
 
       {ticket.status !== 'resolved' && ticket.status !== 'cancelled' && !ticket.assigned_officer_id && (
@@ -406,21 +328,20 @@ function TicketCard({ ticket, currentOfficer, onAssign, onStart, onResolve, onAp
   );
 }
 
-export default function App() {
+export default function AdminApp({ me, onLogout }) {
   const [departments, setDepartments] = useState([]);
   const [reports, setReports] = useState([]);
   const [officers, setOfficers] = useState([]);
   const [allOfficers, setAllOfficers] = useState([]);
-  const [me, setMe] = useState(() => {
-    const stored = localStorage.getItem('jansetu_admin_user');
-    return stored ? JSON.parse(stored) : null;
-  });
   const [statusFilter, setStatusFilter] = useState('all');
   const [departmentFilter, setDepartmentFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [assignmentFilter, setAssignmentFilter] = useState('all');
   const [search, setSearch] = useState('');
   const [showActionableOnly, setShowActionableOnly] = useState(false);
+  const [view, setView] = useState('tickets');
+  // Set when the admin clicks "View tickets" on a Swachh hotspot.
+  const [ticketIdFilter, setTicketIdFilter] = useState(null);
 
   async function loadData() {
     const [departmentData, reportData, allOfficersData] = await Promise.all([
@@ -460,9 +381,14 @@ export default function App() {
     const source = showActionableOnly ? actionableReports : reports;
     const needle = search.trim().toLowerCase();
     return source.filter((report) => {
+      if (ticketIdFilter && !ticketIdFilter.includes(report.id)) return false;
       if (statusFilter !== 'all' && report.status !== statusFilter) return false;
       if (departmentFilter !== 'all' && String(report.assigned_department_id) !== departmentFilter) return false;
-      if (categoryFilter !== 'all' && report.category !== categoryFilter) return false;
+      if (categoryFilter === 'swachh') {
+        if (!SWACHH_CATEGORIES.has(report.category)) return false;
+      } else if (categoryFilter === 'overdue') {
+        if (!isOverdue(report)) return false;
+      } else if (categoryFilter !== 'all' && report.category !== categoryFilter) return false;
       if (assignmentFilter === 'assigned' && !report.assigned_officer_id) return false;
       if (assignmentFilter === 'unassigned' && report.assigned_officer_id) return false;
       if (needle) {
@@ -472,11 +398,13 @@ export default function App() {
       }
       return true;
     });
-  }, [reports, actionableReports, showActionableOnly, statusFilter, departmentFilter, categoryFilter, assignmentFilter, search]);
+  }, [reports, actionableReports, showActionableOnly, statusFilter, departmentFilter, categoryFilter, assignmentFilter, search, ticketIdFilter]);
 
-  function handleLogin(officer) {
-    localStorage.setItem('jansetu_admin_user', JSON.stringify(officer));
-    setMe(officer);
+  function viewHotspotTickets(ids) {
+    setTicketIdFilter(ids);
+    setShowActionableOnly(false);
+    setView('tickets');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   async function assign(reportId, officerId, estimatedHours) {
@@ -509,10 +437,6 @@ export default function App() {
     await loadData();
   }
 
-  if (!me) {
-    return <LoginScreen onLogin={handleLogin} />;
-  }
-
   return (
     <main className="admin-shell">
       <header className="admin-header">
@@ -520,7 +444,7 @@ export default function App() {
           <img src="/indian-emblem.png" alt="Emblem of India" />
         </div>
         <div>
-          <h1>JanSetu Admin</h1>
+          <h1>JanSetu-Swachh Admin</h1>
           <p>
             {me.name} · {departments.find((department) => department.id === me.department_id)?.name || 'Platform Admin'} · All Tickets
           </p>
@@ -528,7 +452,10 @@ export default function App() {
         <button
           className={`notification ${actionableReports.length > 0 ? 'has-alerts' : ''} ${showActionableOnly ? 'active' : ''}`}
           type="button"
-          onClick={() => setShowActionableOnly((value) => !value)}
+          onClick={() => {
+            setShowActionableOnly((value) => !value);
+            setView('tickets');
+          }}
           title="Tickets needing your attention: new, unassigned, or awaiting your approval"
         >
           <span className="bell-wrap">
@@ -540,16 +467,36 @@ export default function App() {
         <button
           className="ghost"
           type="button"
-          onClick={() => {
-            localStorage.removeItem('jansetu_admin_user');
-            setMe(null);
-          }}
+          onClick={onLogout}
         >
           <LogOut size={18} />
           Logout
         </button>
       </header>
 
+      <nav className="view-tabs" aria-label="Dashboard sections">
+        <button
+          type="button"
+          className={view === 'tickets' ? 'active' : ''}
+          aria-pressed={view === 'tickets'}
+          onClick={() => setView('tickets')}
+        >
+          <LayoutList size={16} /> Tickets
+        </button>
+        <button
+          type="button"
+          className={view === 'swachh' ? 'active' : ''}
+          aria-pressed={view === 'swachh'}
+          onClick={() => setView('swachh')}
+        >
+          <Leaf size={16} /> Swachh Insights
+        </button>
+      </nav>
+
+      {view === 'swachh' && <SwachhInsights onViewTickets={viewHotspotTickets} />}
+
+      {view === 'tickets' && (
+      <>
       <section className="metrics-grid">
         <div><strong>{reports.filter((r) => r.status === 'assigned').length}</strong><span>Dept Queue</span></div>
         <div><strong>{reports.filter((r) => r.status === 'in_progress').length}</strong><span>In Progress</span></div>
@@ -617,6 +564,8 @@ export default function App() {
         </select>
         <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
           <option value="all">All categories</option>
+          <option value="swachh">All waste &amp; sanitation</option>
+          <option value="overdue">SLA overdue only</option>
           {Object.entries(categoryLabel).map(([value, label]) => (
             <option key={value} value={value}>
               {label}
@@ -632,6 +581,15 @@ export default function App() {
           {filteredReports.length} of {reports.length} tickets
         </span>
       </section>
+
+      {ticketIdFilter && (
+        <div className="active-filter-chip">
+          Showing {ticketIdFilter.length} tickets from a Swachh hotspot
+          <button type="button" onClick={() => setTicketIdFilter(null)} aria-label="Clear hotspot filter">
+            <X size={14} /> Clear
+          </button>
+        </div>
+      )}
 
       <section className="ticket-list">
         {filteredReports.map((ticket) => (
@@ -650,6 +608,8 @@ export default function App() {
           <p className="empty-state">No tickets match the current filters.</p>
         )}
       </section>
+      </>
+      )}
     </main>
   );
 }
