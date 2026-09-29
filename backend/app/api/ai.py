@@ -5,6 +5,7 @@ from typing import Optional
 import os
 import uuid
 
+from app.ml.local_classifier import classify_civic_issue
 from app.ml.roboflow_civic_classifier import RoboflowCivicClassifier
 
 router = APIRouter(prefix="/ai", tags=["AI Pipeline"])
@@ -38,7 +39,11 @@ async def analyze_issue(
         with open(temp_path, "wb") as f:
             f.write(content)
 
-        roboflow_result = await run_in_threadpool(roboflow_civic_service.classify_image, temp_path)
+        # The locally trained model is used when installed (fast, offline, no
+        # hosted-model credits); Roboflow is the fallback.
+        roboflow_result = await run_in_threadpool(classify_civic_issue, temp_path)
+        if roboflow_result is None:
+            roboflow_result = await run_in_threadpool(roboflow_civic_service.classify_image, temp_path)
         category = roboflow_result["category"]
         label = roboflow_result.get("label", "Other")
         severity_score = 4 if category != "other" else 1

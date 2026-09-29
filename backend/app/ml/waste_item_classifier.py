@@ -3,6 +3,7 @@ from typing import Any, Optional
 
 from dotenv import load_dotenv
 
+from app.ml.local_classifier import waste_classifier
 from app.services.waste_guide import stream_for_label
 
 load_dotenv()
@@ -33,6 +34,13 @@ class WasteItemClassifier:
         return os.getenv("ROBOFLOW_WASTE_ITEM_API_KEY", "").strip() or os.getenv("ROBOFLOW_API_KEY", "").strip()
 
     def classify(self, image_path: str) -> dict[str, Any]:
+        # Locally trained material classifier first (see ml/), then Roboflow.
+        if waste_classifier.available:
+            prediction = waste_classifier.predict(image_path)
+            if prediction is not None:
+                label, confidence, _ = prediction
+                return self._interpret(label, confidence, waste_classifier.threshold)
+
         if not self.model_id or not self.api_key:
             return self._result(message="AI item scan is not configured on the server. Search the guide instead.")
 
@@ -46,7 +54,10 @@ class WasteItemClassifier:
             return self._result(message="AI item scan is unavailable right now. Search the guide instead.")
 
         label, confidence = self._top_prediction(raw)
-        if not label or confidence < self.confidence_threshold:
+        return self._interpret(label, confidence, self.confidence_threshold)
+
+    def _interpret(self, label: Optional[str], confidence: float, threshold: float) -> dict[str, Any]:
+        if not label or confidence < threshold:
             return self._result(
                 label=label,
                 confidence=confidence,

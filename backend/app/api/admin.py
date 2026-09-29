@@ -1,7 +1,5 @@
 import datetime
 import hashlib
-import os
-import uuid
 from typing import Optional
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
@@ -11,6 +9,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import Department, Officer, Report, ReportStatus, ResolutionRecord, User
 from app.schemas import OfficerRead, ReportRead
+from app.services.media import save_upload
 from app.services.notification_service import notify_user
 from app.services.routing import find_department_for_category
 
@@ -318,12 +317,7 @@ async def resolve_report(
     if report.assigned_officer_id and report.assigned_officer_id != officer.id:
         raise HTTPException(status_code=403, detail="Only the assigned employee can resolve this ticket")
 
-    upload_dir = "uploads/resolutions"
-    os.makedirs(upload_dir, exist_ok=True)
-    filename = f"{uuid.uuid4()}_{after_photo.filename}"
-    file_path = os.path.join(upload_dir, filename)
-    with open(file_path, "wb") as file:
-        file.write(await after_photo.read())
+    after_photo_url = await save_upload(db, after_photo, folder="resolutions")
 
     resolved_at = datetime.datetime.utcnow()
     parsed_captured_at = resolved_at
@@ -337,7 +331,7 @@ async def resolve_report(
         report_id=report.id,
         officer_id=officer.id,
         before_photo_url=report.photo_url,
-        after_photo_url=f"/uploads/resolutions/{filename}",
+        after_photo_url=after_photo_url,
         latitude=latitude,
         longitude=longitude,
         cv_similarity_score=0.91,

@@ -33,7 +33,15 @@ def demo_accounts_enabled() -> bool:
 def ensure_demo_accounts(db) -> None:
     if not demo_accounts_enabled():
         return
+    try:
+        _ensure_demo_accounts(db)
+    except Exception as exc:
+        # Never let demo-account setup stop the API from starting.
+        db.rollback()
+        print(f"Demo accounts not created: {exc}")
 
+
+def _ensure_demo_accounts(db) -> None:
     sanitation = find_department_for_category(db, CategoryType.GARBAGE)
     wanted = [
         (DEMO_ADMIN_ID, "Demo Admin", None),

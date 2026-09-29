@@ -202,6 +202,10 @@ npm install
 npm run dist           # -> admin_desktop/release/JanSetu-Swachh-Admin-<version>.exe
 ```
 
+### Deploying online
+
+Free-tier cloud deployment (Neon database, Render backend via `render.yaml`, Netlify web portal via `dashboard/netlify.toml`) is described step by step in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md). Photos are stored in the database (`MEDIA_STORAGE=db`) so they survive Render's ephemeral disk.
+
 ### Optional services
 - **Voice notes:** `voice-backend/` (port 8001) needs `SARVAM_API_KEY`.
 - **AI issue detection:** Roboflow keys in `backend/.env` (see `.env.example`).

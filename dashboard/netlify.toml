@@ -1,0 +1,16 @@
+# Netlify settings for the web portal. In the Netlify UI set Base directory
+# to "dashboard"; the build command and publish folder below are then used.
+# Set VITE_API_BASE_URL (e.g. https://jansetu-swachh-api.onrender.com/api/v1)
+# under Site configuration -> Environment variables.
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+# Single-page app: serve index.html for any path.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

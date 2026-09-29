@@ -1,5 +1,5 @@
 import datetime
-from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Boolean, Enum as SQLEnum
+from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Boolean, LargeBinary, Enum as SQLEnum
 from sqlalchemy.orm import relationship
 try:
     from geoalchemy2 import Geometry
@@ -233,3 +233,16 @@ class CollectionLog(Base):
     @property
     def officer_name(self):
         return self.officer.name if self.officer else None
+
+
+class MediaFile(Base):
+    """Uploaded photo stored in the database, so photos survive on hosts
+    whose local disk is wiped on every restart (e.g. Render free tier)."""
+    __tablename__ = "media_files"
+
+    id = Column(String(36), primary_key=True)
+    filename = Column(String(255), nullable=False)
+    content_type = Column(String(100), nullable=False)
+    size = Column(Integer, nullable=False)
+    data = Column(LargeBinary, nullable=False)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)

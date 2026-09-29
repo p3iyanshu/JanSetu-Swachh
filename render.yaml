@@ -1,0 +1,35 @@
+# Render Blueprint for the JanSetu-Swachh backend.
+# Render dashboard -> New -> Blueprint -> pick this repo. You'll be asked for
+# DATABASE_URL (a Neon PostgreSQL connection string); everything else is set.
+# Optional AI keys (Roboflow, Sarvam, Firebase) can be added afterwards under
+# the service's Environment tab ("Add from .env" accepts backend/.env).
+services:
+  - type: web
+    name: jansetu-swachh-api
+    runtime: python
+    plan: free
+    region: singapore
+    rootDir: backend
+    buildCommand: pip install -r requirements-deploy.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: DATABASE_URL
+        sync: false
+      # Fail at startup instead of silently using a throwaway SQLite file.
+      - key: JANSETU_REQUIRE_DATABASE
+        value: "1"
+      # Photos go in the database: Render's free-tier disk is wiped on restart.
+      - key: MEDIA_STORAGE
+        value: db
+      # One-click demo logins + sample Swachh data for evaluators.
+      - key: JANSETU_DEMO_ACCOUNTS
+        value: "1"
+      - key: JANSETU_SEED_DEMO_DATA
+        value: "1"
+      # LAN auto-discovery is meaningless on a cloud host.
+      - key: JANSETU_DISCOVERY
+        value: "0"

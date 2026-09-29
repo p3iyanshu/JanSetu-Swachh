@@ -3,14 +3,13 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import List, Optional
 from pydantic import BaseModel
-import uuid
-import os
 import datetime
 
 from app.database import get_db
 from app.models import Report, ReportStatus, CategoryType, User, Department, Officer, ResolutionRecord
 from app.schemas import ReportCreate, ReportRead
 from app.services import calculate_sla_deadline, calculate_priority_score
+from app.services.media import save_upload
 from app.services.routing import find_department_for_category
 
 router = APIRouter(prefix="/reports", tags=["Reports"])
@@ -28,17 +27,9 @@ class CancelRequest(BaseModel):
     reason: Optional[str] = None
 
 @router.post("/upload-photo")
-async def upload_photo(file: UploadFile = File(...)):
-    filename = f"{uuid.uuid4()}_{file.filename}"
-    upload_dir = "uploads"
-    os.makedirs(upload_dir, exist_ok=True)
-    file_path = os.path.join(upload_dir, filename)
-    
-    with open(file_path, "wb") as f:
-        content = await file.read()
-        f.write(content)
-        
-    return {"photo_url": f"/uploads/{filename}", "filename": filename}
+async def upload_photo(file: UploadFile = File(...), db: Session = Depends(get_db)):
+    photo_url = await save_upload(db, file)
+    return {"photo_url": photo_url, "filename": photo_url.rsplit("/", 1)[-1]}
 
 @router.post("/classify-placeholder")
 def classify_placeholder(photo_url: str):

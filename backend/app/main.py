@@ -3,10 +3,20 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 import os
 
-from app.api.router import api_router
 from sqlalchemy import inspect, text
 
+from app.api.router import api_router
+
 from app.database import engine, Base
+
+# Fresh cloud databases (Neon, Render) need PostGIS enabled before the
+# reports.location Geometry column can be created.
+if engine.dialect.name == "postgresql":
+    try:
+        with engine.begin() as connection:
+            connection.execute(text("CREATE EXTENSION IF NOT EXISTS postgis"))
+    except Exception:
+        pass
 
 # Create tables automatically on startup for local development / testing
 Base.metadata.create_all(bind=engine)
@@ -115,6 +125,28 @@ seed_database()
 from app.services.discovery import start_discovery_responder
 
 start_discovery_responder()
+
+
+def seed_demo_data_if_requested():
+    """JANSETU_SEED_DEMO_DATA=1 seeds the Swachh demo tickets/visits once
+    (for hosts like Render free tier that have no shell to run the script)."""
+    if os.getenv("JANSETU_SEED_DEMO_DATA", "0") != "1":
+        return
+    from app.database import SessionLocal
+    from app.models import Report
+    from scripts.seed_swachh_demo import DEMO_PREFIX, seed
+
+    db = SessionLocal()
+    try:
+        if not db.query(Report).filter(Report.description.like(f"{DEMO_PREFIX}%")).first():
+            seed(db)
+    except Exception as exc:
+        print(f"Demo data seeding skipped: {exc}")
+    finally:
+        db.close()
+
+
+seed_demo_data_if_requested()
 
 
 app = FastAPI(
