@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../constants/app_constants.dart';
@@ -13,6 +14,26 @@ class ServerConfig {
       AppConstants.serverOverride = await _storage.read(key: _key);
     } catch (_) {
       AppConstants.serverOverride = null;
+    }
+    await _loadRemoteDefault();
+  }
+
+  /// Reads the published server.json (see AppConstants.configUrl). Never
+  /// throws and gives up after a few seconds, so the app still starts offline.
+  static Future<void> _loadRemoteDefault() async {
+    try {
+      final response = await Dio(BaseOptions(
+        connectTimeout: const Duration(seconds: 3),
+        receiveTimeout: const Duration(seconds: 3),
+        responseType: ResponseType.json,
+      )).get(AppConstants.configUrl);
+      final data = response.data;
+      final url = data is Map ? data['api_base_url'] : null;
+      if (url is String && (url.startsWith('https://') || url.startsWith('http://'))) {
+        AppConstants.remoteDefault = url.replaceAll(RegExp(r'/+$'), '');
+      }
+    } catch (_) {
+      // Offline or not published - keep the built-in default.
     }
   }
 

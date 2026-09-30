@@ -20,5 +20,8 @@ execSync(`npx vite build --outDir "${outDir}" --emptyOutDir`, {
   env: {
     ...process.env,
     VITE_API_BASE_URL: process.env.JANSETU_API_BASE_URL || 'http://localhost:8000/api/v1',
+    // The exe serves its own copy of the site, so point it at the server.json
+    // published on the live website to learn the current backend address.
+    VITE_CONFIG_URL: process.env.JANSETU_CONFIG_URL || 'https://jansetu-swachh.netlify.app/server.json',
   },
 });

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Server } from 'lucide-react';
-import { getApiBaseUrl, testAndSaveServer } from '../api/client';
+import { clearStoredServer, getApiBaseUrl, hasStoredServer, testAndSaveServer } from '../api/client';
 
 function displayServer() {
   return getApiBaseUrl().replace(/^https?:\/\//, '').replace(/\/api\/v1$/, '');
@@ -42,6 +42,19 @@ export default function ServerSettings() {
       </label>
       <div className="server-actions">
         <button type="button" className="ghost small" onClick={() => setOpen(false)}>Close</button>
+        {hasStoredServer() && (
+          <button
+            type="button"
+            className="ghost small"
+            onClick={() => {
+              clearStoredServer();
+              setValue(displayServer());
+              setStatus({ ok: true, text: `Using the default server: ${displayServer()}` });
+            }}
+          >
+            Use default
+          </button>
+        )}
         <button type="button" className="ghost small" onClick={save} disabled={busy}>
           {busy ? 'Testing...' : 'Test & Save'}
         </button>

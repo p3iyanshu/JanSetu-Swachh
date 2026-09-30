@@ -7,6 +7,17 @@ class AppConstants {
   /// working when the backend laptop's IP changes (e.g. at the venue).
   static String? serverOverride;
 
+  /// Backend address published in server.json on the JanSetu-Swachh website
+  /// (read at startup by ServerConfig). Lets the backend move - e.g. a new
+  /// tunnel address - without rebuilding the APK.
+  static String? remoteDefault;
+
+  /// Where server.json is published.
+  static const String configUrl = String.fromEnvironment(
+    'JANSETU_CONFIG_URL',
+    defaultValue: 'https://jansetu-swachh.netlify.app/server.json',
+  );
+
   static String get apiBaseUrl {
     final override = serverOverride;
     if (override != null && override.isNotEmpty) {
@@ -16,6 +27,14 @@ class AppConstants {
   }
 
   static String get defaultApiBaseUrl {
+    final remote = remoteDefault;
+    if (remote != null && remote.isNotEmpty) {
+      return remote;
+    }
+    return buildDefaultApiBaseUrl;
+  }
+
+  static String get buildDefaultApiBaseUrl {
     const configuredUrl = String.fromEnvironment(
       'JANSETU_API_BASE_URL',
       defaultValue: '',

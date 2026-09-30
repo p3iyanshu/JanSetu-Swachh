@@ -14,3 +14,11 @@
   from = "/*"
   to = "/index.html"
   status = 200
+
+# server.json holds the current backend address; the Android app and the
+# admin desktop app read it from other origins, and it must never be cached.
+[[headers]]
+  for = "/server.json"
+  [headers.values]
+    Access-Control-Allow-Origin = "*"
+    Cache-Control = "no-cache"

@@ -1,8 +1,30 @@
-// Backend address: the "Server address" saved on the login screen wins,
-// then VITE_API_BASE_URL (build time), then localhost. Lets the packaged
-// admin app point at whichever computer runs the backend.
+// Backend address, in order of preference:
+//   1. the "Server address" saved on the login screen (this browser only)
+//   2. server.json published with the website - lets the backend address
+//      change (e.g. a new tunnel) without rebuilding the site, APK or exe
+//   3. VITE_API_BASE_URL at build time, then localhost.
 const SERVER_KEY = 'jansetu_api_base_url';
-const DEFAULT_API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1';
+const BUILD_DEFAULT_API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1';
+const CONFIG_URL = import.meta.env.VITE_CONFIG_URL || '/server.json';
+let remoteApiBaseUrl = null;
+
+/** Reads server.json once at startup. Never throws; gives up after 4 s. */
+export async function loadRemoteConfig() {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 4000);
+  try {
+    const res = await fetch(CONFIG_URL, { cache: 'no-store', signal: controller.signal });
+    if (!res.ok) return;
+    const config = await res.json();
+    if (typeof config.api_base_url === 'string' && /^https?:\/\//.test(config.api_base_url)) {
+      remoteApiBaseUrl = config.api_base_url.replace(/\/+$/, '');
+    }
+  } catch {
+    // Offline or no config published - fall back to the build-time default.
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
 function readStoredServer() {
   try {
@@ -12,8 +34,18 @@ function readStoredServer() {
   }
 }
 
+export function clearStoredServer() {
+  try {
+    localStorage.removeItem(SERVER_KEY);
+  } catch {}
+}
+
+export function hasStoredServer() {
+  return Boolean(readStoredServer());
+}
+
 export function getApiBaseUrl() {
-  return readStoredServer() || DEFAULT_API_BASE_URL;
+  return readStoredServer() || remoteApiBaseUrl || BUILD_DEFAULT_API_BASE_URL;
 }
 
 function getApiRootUrl() {

@@ -66,6 +66,19 @@ class ServerStatusBannerState extends State<ServerStatusBanner> {
       widget.onConnected?.call();
       return;
     }
+    // A manually saved address that stopped working (e.g. an old laptop IP)
+    // shouldn't hide the published default - try that before searching.
+    final saved = AppConstants.serverOverride;
+    if (saved != null) {
+      AppConstants.serverOverride = null;
+      if (await ServerDiscovery.isCurrentServerReachable()) {
+        await ServerConfig.reset();
+        if (mounted) setState(() => _status = _Status.connected);
+        widget.onConnected?.call();
+        return;
+      }
+      AppConstants.serverOverride = saved;
+    }
     if (!search) {
       if (mounted) setState(() => _status = _Status.notFound);
       return;
