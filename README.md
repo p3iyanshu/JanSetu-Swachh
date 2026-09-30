@@ -14,6 +14,8 @@ Smart India Hackathon 2026 · Student Innovation · **SIH26195** · Clean &amp; 
 ![Flutter](https://img.shields.io/badge/Mobile-Flutter-02569B?logo=flutter&logoColor=white)
 ![Electron](https://img.shields.io/badge/Desktop-Electron-47848F?logo=electron&logoColor=white)
 
+**[Live demo → jansetu-swachh.netlify.app](https://jansetu-swachh.netlify.app)** · **[Download the Android app & admin exe](https://github.com/p3iyanshu/JanSetu-Swachh/releases/latest)**
+
 <img src="docs/screenshots/portal-login.png" alt="JanSetu-Swachh portal login" width="820" />
 
 </div>
