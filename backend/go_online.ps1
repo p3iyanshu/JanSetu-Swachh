@@ -58,10 +58,12 @@ Push-Location $repoDir
 try {
     git add dashboard/public/server.json
     git commit -m "Update backend address to $url" | Out-Null
-    git push | Out-Null
+    git push
+    if ($LASTEXITCODE -ne 0) { throw "git push exited with code $LASTEXITCODE" }
     Write-Step "Published - the website updates in about a minute."
 } catch {
     Write-Host "  ! Could not push to GitHub: $_" -ForegroundColor Yellow
+    Write-Host "  ! Run 'git push' in D:\JanSetu (signed in to GitHub) to publish the new address." -ForegroundColor Yellow
 } finally {
     Pop-Location
 }
